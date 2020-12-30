@@ -13,7 +13,7 @@
 #     name: python3
 # ---
 
-# %% jupyter={"outputs_hidden": true}
+# %%
 # !python -m spacy download en_core_web_lg
 
 # %%
@@ -47,7 +47,7 @@ nlp.vocab[india].similarity(nlp.vocab[apple])
 # %%
 def similarity(word_a, word_b):
     word_a = nlp.vocab.strings[word_a]
-    word_ab = nlp.vocab.strings[word_b]
+    word_b = nlp.vocab.strings[word_b]
     return nlp.vocab[word_a].similarity(nlp.vocab[word_b])
 
 
@@ -77,50 +77,49 @@ blue_words = [
 
 neutral_words = ["jack", "point", "laser", "lemon", "unicorn", "pyramid", "figure"]
 assassin_words = ["hollywood"]
+words = red_words + blue_words + neutral_words + assassin_words
+len(words)
 
+# %%
 vocab = list(nlp.vocab.strings)
 len(vocab)
 
 # %%
-[(w, w in vocab) for w in red_words]
+[(w, w in vocab) for w in words]  # make sure that the vocab covers the words
 
 # %%
-X = np.array([[similarity(w_a, w) for w in vocab] for w_a in red_words])
-X.shape
+similarities = np.array([[similarity(w_a, w) for w in vocab] for w_a in words])
+similarities.shape
 
 # %%
-np.save("x.npy", X)
-
-# %%
-# !ls
-
-# %%
-X.shape
+np.save("similarities.npy", similarities)
 
 
 # %%
 def is_valid(suggested_word):
-    suggested_word = suggested_word.lower()
-    for w in all_words:
+    for w in words:
         w = w.lower()
         if (suggested_word in w) or (w in suggested_word):
             return False
     return True
 
 
-def produce_clues(words, max_num_words=4):
-    N = len(words)
+def produce_clues(words, similarities, max_num_words=4, max_suggestions=35):
+    num_words = len(words)
     clues = {}
-    for l in tqdm(list(range(1, max_num_words + 1))):
-        for c in tqdm(list(combinations(range(N), l))):
-            inds = X[np.array(c)].mean(axis=0).argsort()[::-1][:35]
-            avg_sims = np.sort(X[np.array(c)].mean(axis=0))[::-1][:35]
+    for hint_len in tqdm(range(1, max_num_words + 1), total=max_num_words):
+        for selection in tqdm(list(combinations(range(num_words), hint_len))):
+            selection = np.array(selection)
+            mean_similarities = similarities[selection].mean(axis=0)
+            suggestion_indices = mean_similarities.argsort()[::-1][:max_suggestions]
+            suggestion_scores = mean_similarities[suggestion_indices]
 
-            for i, avg_sim in zip(inds, avg_sims):
-                if is_valid(vocab[i]):
-                    clues[tuple([words[j] for j in c])] = (
-                        vocab[i].lower(),
-                        avg_sim,
+            for index, score in zip(suggestion_indices, suggestion_scores):
+                suggested_word = vocab[index].lower()
+                if is_valid(suggested_word):
+                    clues[tuple([words[j] for j in selection])] = (
+                        suggested_word,
+                        score,
                     )
                     break
 
@@ -128,6 +127,6 @@ def produce_clues(words, max_num_words=4):
 
 
 # %%
-produce_clues(red_words)
+produce_clues(words, similarities)
 
 # %%
