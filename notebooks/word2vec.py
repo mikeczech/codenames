@@ -20,12 +20,28 @@
 # %load_ext lab_black
 
 # %%
+# %load_ext autoreload
+# %autoreload 2
+
+# %%
 import spacy
 import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
-
+from itertools import chain
 from itertools import combinations
+
+np.random.seed(0)
+
+# %%
+from codenames.game import read_wordlist_csv
+from codenames.game import Game
+
+# %%
+wordlist = read_wordlist_csv("../data/codenames_wordlist.csv")
+
+# %%
+Game.create_from(wordlist)
 
 # %%
 nlp = spacy.load("en_core_web_lg")
@@ -45,33 +61,37 @@ nlp.vocab[india].similarity(nlp.vocab[germany])
 nlp.vocab[india].similarity(nlp.vocab[apple])
 
 # %%
-red_words = [
-    "arm",
-    "stick",
-    "organ",
-    "field",
-    "piano",
-    "agent",
-    "leprechaun",
-    "swing",
-    "india",
-]
+codenames_wordlist = (
+    pd.read_csv("../data/codenames_wordlist.csv", header=None)
+    .unstack()
+    .reset_index(drop=True)
+    .dropna()
+)
+codenames_wordlist.shape
 
-blue_words = [
-    "roulette",
-    "stock",
-    "dinosaur",
-    "embassy",
-    "hole",
-    "turkey",
-    "fire",
-    "shakespeare",
-]
+# %%
+red_index = np.random.choice(codenames_wordlist.index, size=9, replace=False)
+blue_index = np.random.choice(
+    codenames_wordlist.drop(red_index).index, size=9, replace=False
+)
+neutral_index = np.random.choice(
+    codenames_wordlist.drop(red_index).index.drop(blue_index), size=9, replace=False
+)
+assassin_index = np.random.choice(
+    codenames_wordlist.drop(red_index).index.drop(blue_index).drop(neutral_index),
+    size=1,
+    replace=False,
+)
 
-neutral_words = ["jack", "point", "laser", "lemon", "unicorn", "pyramid", "figure"]
-assassin_words = ["hollywood"]
-all_words = red_words + blue_words + neutral_words + assassin_words
-len(all_words)
+# %%
+red_words = codenames_wordlist.iloc[red_index].values
+blue_words = codenames_wordlist.iloc[blue_index].values
+neutral_words = codenames_wordlist.iloc[neutral_index].values
+assassin_words = codenames_wordlist.iloc[assassin_index].values
+
+# %%
+all_words = np.concatenate([red_words, blue_words, neutral_words, assassin_words])
+all_words
 
 # %%
 df_all_words = pd.DataFrame(
@@ -91,7 +111,9 @@ vocab = list(nlp.vocab.strings)
 len(vocab)
 
 # %%
-similarities = np.array([[similarity(w_a, w) for w in vocab] for w_a in words])
+similarities = np.array(
+    [[similarity(w_a, w) for w in vocab] for w_a in tqdm(df_all_words.word.values)]
+)
 similarities.shape
 
 # %%
@@ -120,14 +142,14 @@ def produce_clues(
 
     selection_col = []
     suggestion_col = []
-    hint_len_col = []
+    selection_len_col = []
     score_col = []
-    for hint_len in tqdm(range(1, max_num_words + 1), total=max_num_words):
-        
-        for selection in tqdm(list(combinations(word_index, hint_len))):
+    for selection_len in tqdm(range(1, max_num_words + 1), total=max_num_words):
+
+        for selection in tqdm(list(combinations(word_index, selection_len))):
             selection = np.array(selection)
             agg_similarities = similarities[selection].mean(axis=0)
-            
+
             suggestion_indices = agg_similarities.argsort()[::-1][:max_suggestions]
             suggestion_scores = agg_similarities[suggestion_indices]
             for index, score in zip(suggestion_indices, suggestion_scores):
@@ -136,7 +158,7 @@ def produce_clues(
                     selection_words = tuple([words[j] for j in selection])
                     selection_col.append(selection_words)
                     suggestion_col.append(suggested_word)
-                    hint_len_col.append(hint_len)
+                    selection_len_col.append(selection_len)
                     score_col.append(score)
                     break
 
@@ -145,7 +167,7 @@ def produce_clues(
             {
                 "selection": selection_col,
                 "suggestion": suggestion_col,
-                "hint_len": hint_len_col,
+                "selection_len": selection_len_col,
                 "score": score_col,
             }
         )
@@ -155,9 +177,9 @@ def produce_clues(
 
 
 # %%
-df_clues = produce_clues("red", df_all_words, similarities)
+df_clues = produce_clues("blue", df_all_words, similarities)
 
 # %%
-df_clues.sort_values(by="score", ascending=False).head(20)
+df_clues[df_clues.score > 0.5].head(20)
 
 # %%
