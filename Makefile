@@ -11,6 +11,9 @@ run-backend:
 run-frontend:
 	(cd frontend && npm start)
 
+run-jupyter:
+	poetry run jupyter lab
+
 init-db:
 	FLASK_APP=codenames \
   FLASK_ENV=development \
