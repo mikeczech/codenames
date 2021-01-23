@@ -1,4 +1,5 @@
 import sqlite3
+import csv
 
 import click
 from flask import current_app, g
@@ -25,6 +26,13 @@ def init_db():
 
     with current_app.open_resource("schema.sql") as f:
         db.executescript(f.read().decode("utf8"))
+
+    with current_app.open_resource("data/words.csv", mode="r") as f:
+        rows = csv.DictReader(f)
+        to_db = [(r["id"], r["word"]) for r in rows]
+
+    db.executemany("INSERT INTO words (id, word) VALUES (?, ?);", to_db)
+    db.commit()
 
 @click.command("init-db")
 @with_appcontext

@@ -34,8 +34,6 @@ def create():
     return jsonify(success=True)
 
 
-
-
 @bp.route("/game", methods=("GET",))
 def game():
     game_id = request.args.get("game-id")
