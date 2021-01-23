@@ -11,7 +11,10 @@ from codenames.errors import InvalidUsage
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
-@bp.route("/create", methods=("POST", ))
+NUM_WORDS_PER_GAME = 28
+
+
+@bp.route("/create", methods=("POST",))
 def create():
     game_id = request.form["game-id"]
     db = get_db()
@@ -19,16 +22,21 @@ def create():
 
     if not game_id:
         error = "Invalid game id"
-    elif db.execute("SELECT name from games WHERE name = ?", (game_id,)).fetchone() is not None:
+    elif (
+        db.execute("SELECT name from games WHERE name = ?", (game_id,)).fetchone()
+        is not None
+    ):
         error = f"Game {game_id} already exists"
 
     if error is not None:
-        raise InvalidUsage(f"An error occurred: {error}", status_code = 400)
+        raise InvalidUsage(f"An error occurred: {error}", status_code=400)
 
-    db.execute(
-        "INSERT INTO games (name) VALUES (?)",
-        (game_id,)
-    )
+    db.execute("INSERT INTO games (name) VALUES (?)", (game_id,))
+
+    game = db.execute("SELECT id from games WHERE name = ?", (game_id,)).fetchone()
+    words = db.execute(
+        "SELECT id, word from words ORDER BY RANDOM() LIMIT ?", (NUM_WORDS_PER_GAME,)
+    ).fetchall()
 
     db.commit()
     return jsonify(success=True)
@@ -48,6 +56,6 @@ def game():
         error = f"Game {game_id} does not exist"
 
     if error is not None:
-        raise InvalidUsage(f"An error occurred: {error}", status_code = 400)
+        raise InvalidUsage(f"An error occurred: {error}", status_code=400)
 
     return jsonify(name=game["name"])

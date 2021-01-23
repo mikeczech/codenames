@@ -3,6 +3,9 @@
 install:
 	poetry install
 
+format:
+	poetry run black codenames/
+
 run-backend:
 	FLASK_APP=codenames \
   FLASK_ENV=development \
