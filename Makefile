@@ -3,10 +3,13 @@
 install:
 	poetry install
 
-run:
+run-backend:
 	FLASK_APP=codenames \
   FLASK_ENV=development \
   poetry run flask run
+
+run-frontend:
+	(cd frontend && npm start)
 
 init-db:
 	FLASK_APP=codenames \
