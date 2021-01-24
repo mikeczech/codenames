@@ -11,7 +11,13 @@ from codenames.errors import InvalidUsage
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
-NUM_WORDS_PER_GAME = 28
+NUM_RED_WORDS = 9
+NUM_BLUE_WORDS = 9
+NUM_NEUTRAL_WORDS = 9
+NUM_ASSASSIN_WORDS = 1
+NUM_WORDS_PER_GAME = (
+    NUM_RED_WORDS + NUM_BLUE_WORDS + NUM_NEUTRAL_WORDS + NUM_ASSASSIN_WORDS
+)
 
 
 @bp.route("/create", methods=("POST",))
@@ -26,7 +32,7 @@ def create():
         db.execute("SELECT name from games WHERE name = ?", (game_id,)).fetchone()
         is not None
     ):
-        error = f"Game {game_id} already exists"
+        error = f"Game '{game_id}' already exists"
 
     if error is not None:
         raise InvalidUsage(f"An error occurred: {error}", status_code=400)
@@ -38,24 +44,48 @@ def create():
         "SELECT id, word from words ORDER BY RANDOM() LIMIT ?", (NUM_WORDS_PER_GAME,)
     ).fetchall()
 
+    colors = (
+        ["red"] * NUM_RED_WORDS
+        + ["blue"] * NUM_BLUE_WORDS
+        + ["neutral"] * NUM_NEUTRAL_WORDS
+        + ["assassin"] * NUM_ASSASSIN_WORDS
+    )
+    active_words = [(game["id"], word["id"], color) for word, color in zip(words, colors)]
+
+    db.executemany(
+        "INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?);", active_words
+    )
+
     db.commit()
+
     return jsonify(success=True)
 
 
-@bp.route("/game", methods=("GET",))
+@bp.route("/state", methods=("GET",))
 def game():
     game_id = request.args.get("game-id")
     db = get_db()
     error = None
 
     if not game_id:
-        error = "Invalid game id"
+        raise InvalidUsage("No game id specified")
 
-    game = db.execute("SELECT name from games WHERE name = ?", (game_id,)).fetchone()
-    if game is None:
-        error = f"Game {game_id} does not exist"
+    active_words = db.execute(
+        """
+        SELECT word, color
+        FROM active_words
+        JOIN words
+        ON words.id = active_words.word_id
+        JOIN (SELECT id FROM games where name = ?) game
+        ON game.id = active_words.game_id
+    """,
+        (game_id,),
+    ).fetchall()
 
-    if error is not None:
-        raise InvalidUsage(f"An error occurred: {error}", status_code=400)
+    if active_words is None or len(active_words) == 0:
+        raise InvalidUsage(
+            f"There is no game state associated with game {game_id}", status_code=400
+        )
 
-    return jsonify(name=game["name"])
+    resp = [{"word": w["word"], "color": w["color"]} for w in active_words]
+    return jsonify(resp)

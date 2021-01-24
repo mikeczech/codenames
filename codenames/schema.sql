@@ -14,5 +14,6 @@ CREATE TABLE words (
 
 CREATE TABLE active_words (
   game_id INTEGER NOT NULL,
-  word_id INTEGER NOT NULL
+  word_id INTEGER NOT NULL,
+  color TEXT NOT NULL
 );
