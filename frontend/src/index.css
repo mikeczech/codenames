@@ -7,7 +7,46 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.red {
+  background: #DC143C;
+  color: #FFFFFF;
+}
+
+.blue {
+  background: #6495ED;
+  color: #FFFFFF;
+}
+
+.neutral {
+  background: #F5F5F5;
+}
+
+.assassin {
+  background: #000000;
+  color: #FFFFFF;
+}
+
+ul.words {
+  list-style-type: none;
+}
+
+ul.words li {
+  float: left;
+}
+
+ul.words li:nth-child(7n+1) {
+  clear: left;
+}
+
+ul.words li button {
+  width: 125px;
+  height: 125px;
+  border: 1px solid #999;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
 }

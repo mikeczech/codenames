@@ -1,5 +1,6 @@
-from flask import Blueprint
+import random
 
+from flask import Blueprint
 from flask import render_template
 from flask import redirect
 from flask import request
@@ -22,7 +23,7 @@ NUM_WORDS_PER_GAME = (
 
 @bp.route("/create", methods=("POST",))
 def create():
-    game_id = request.form["game-id"]
+    game_id = request.json["gameId"]
     db = get_db()
     error = None
 
@@ -50,6 +51,7 @@ def create():
         + ["neutral"] * NUM_NEUTRAL_WORDS
         + ["assassin"] * NUM_ASSASSIN_WORDS
     )
+    random.shuffle(colors)
     active_words = [(game["id"], word["id"], color) for word, color in zip(words, colors)]
 
     db.executemany(
@@ -63,7 +65,7 @@ def create():
 
 @bp.route("/state", methods=("GET",))
 def game():
-    game_id = request.args.get("game-id")
+    game_id = request.args.get("gameId")
     db = get_db()
     error = None
 
