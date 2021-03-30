@@ -64,7 +64,7 @@ def create():
 
 
 @bp.route("/state", methods=("GET",))
-def game():
+def state():
     game_id = request.args.get("gameId")
     db = get_db()
     error = None
@@ -91,3 +91,22 @@ def game():
 
     resp = [{"word": w["word"], "color": w["color"]} for w in active_words]
     return jsonify(resp)
+
+
+@bp.route("/join", methods=("POST",))
+def join():
+    username = request.json["username"]
+    kind = request.json["kind"]
+    game_id = request.json["gameId"]
+
+    if db.execute("SELECT game_id FROM games WHERE game_id = ?", (game_id,)).fetchone() is None:
+        raise InvalidUsage("Game with id {game_id} does not exist")
+
+    active_player = db.execute("SELECT username FROM players WHERE game_id = ? and kind = ?", (game_id, kind)).fetchone()
+    if active_player is not None:
+        raise InvalidUsage("User {active_player['username']} is already of kind {kind}")
+
+    db.execute("INSERT INTO players (game_id, username, kind) VALUES (?, ?, ?);")
+    db.commit()
+
+    return jsonify(success=True)

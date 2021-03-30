@@ -105,6 +105,24 @@ function Game() {
   return (
     <div>
       <ul className="words">{words.map(w => renderSquare(w))}</ul>
+      <form>
+        <label>
+          Username:
+          <input type="text" value="username" />
+        </label>
+        <div>
+          <button>Join as spymaster (red)</button>
+        </div>
+        <div>
+          <button>Join as agent (red)</button>
+        </div>
+        <div>
+          <button>Join as spymaster (blue)</button>
+        </div>
+        <div>
+          <button>Join as agend (blue)</button>
+        </div>
+      </form>
     </div>
   );
 }

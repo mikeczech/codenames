@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS words;
 DROP TABLE IF EXISTS active_words;
+DROP TABLE IF EXISTS players;
 
 CREATE TABLE games (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,4 +17,10 @@ CREATE TABLE active_words (
   game_id INTEGER NOT NULL,
   word_id INTEGER NOT NULL,
   color TEXT NOT NULL
+);
+
+CREATE TABLE players (
+  game_id INTEGER NOT NULL,
+  username INTEGER NOT NULL,
+  kind TEXT NOT NULL
 );
