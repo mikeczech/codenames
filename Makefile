@@ -2,6 +2,7 @@
 
 install:
 	poetry install
+	(cd frontend && npm install)
 
 format:
 	poetry run black codenames/
@@ -18,6 +19,7 @@ run-jupyter:
 	poetry run jupyter lab
 
 init-db:
+	mkdir instance
 	FLASK_APP=codenames \
   FLASK_ENV=development \
   poetry run flask init-db
