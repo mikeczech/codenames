@@ -13,7 +13,7 @@
 #     name: python3
 # ---
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 # !python -m spacy download en_core_web_lg
 
 # %%
@@ -38,16 +38,30 @@ from codenames.game import read_wordlist_csv
 from codenames.game import Game
 
 # %%
-wordlist = read_wordlist_csv("../data/codenames_wordlist.csv")
+# !ls ../
 
 # %%
-Game.create_from(wordlist)
+wordlist = read_wordlist_csv("../codenames/data/codenames_wordlist.txt")
+wordlist[:10]
 
 # %%
 nlp = spacy.load("en_core_web_lg")
 
 # %%
 nlp.meta["vectors"]
+
+# %%
+nlp.vocab[nlp.vocab.strings["hollywood"]].similarity(
+    nlp.vocab[nlp.vocab.strings["usa"]]
+)
+
+# %%
+nlp.vocab[nlp.vocab.strings["hollywood"]].similarity(
+    nlp.vocab[nlp.vocab.strings["tiger"]]
+)
+
+# %% [markdown]
+# ### Attic
 
 # %%
 india = nlp.vocab.strings["india"]
