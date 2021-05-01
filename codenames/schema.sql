@@ -19,6 +19,12 @@ CREATE TABLE active_words (
   color TEXT NOT NULL
 );
 
+CREATE TABLE moves (
+  game_id INTEGER NOT NULL,
+  word_id INTEGER NOT NULL,
+  selected_at INTEGER NOT NULL
+);
+
 CREATE TABLE players (
   game_id INTEGER NOT NULL,
   username INTEGER NOT NULL,
