@@ -52,10 +52,13 @@ def create():
         + ["assassin"] * NUM_ASSASSIN_WORDS
     )
     random.shuffle(colors)
-    active_words = [(game["id"], word["id"], color) for word, color in zip(words, colors)]
+    active_words = [
+        (game["id"], word["id"], color) for word, color in zip(words, colors)
+    ]
 
     db.executemany(
-        "INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?);", active_words
+        "INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?);",
+        active_words,
     )
 
     db.commit()
@@ -99,10 +102,15 @@ def join():
     kind = request.json["kind"]
     game_id = request.json["gameId"]
 
-    if db.execute("SELECT game_id FROM games WHERE game_id = ?", (game_id,)).fetchone() is None:
+    if (
+        db.execute("SELECT game_id FROM games WHERE game_id = ?", (game_id,)).fetchone()
+        is None
+    ):
         raise InvalidUsage("Game with id {game_id} does not exist")
 
-    active_player = db.execute("SELECT username FROM players WHERE game_id = ? and kind = ?", (game_id, kind)).fetchone()
+    active_player = db.execute(
+        "SELECT username FROM players WHERE game_id = ? and kind = ?", (game_id, kind)
+    ).fetchone()
     if active_player is not None:
         raise InvalidUsage("User {active_player['username']} is already of kind {kind}")
 
