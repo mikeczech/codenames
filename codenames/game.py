@@ -1,14 +1,24 @@
-from typing import List, Optional
+from typing import Dict, Any List, Tuple, Optional
 from itertools import chain
 from datetime import datetime
 from dataclasses import dataclass
+from enum import Enum
 import random
-import hashlib
 
 import pandas as pd
 import numpy as np
 
 from sqlite3 import Connection
+
+
+class Color(Enum):
+    RED = 1
+    BLUE = 2
+
+
+class Role(Enum):
+    PLAYER = 1
+    SPYMASTER = 2
 
 
 @dataclass
@@ -22,16 +32,32 @@ class Word:
         return bool(self.selected_at)
 
 
+@dataclass
+class Hint:
+    word: str
+    num: int
+
+
 class GameState:
     @property
     def game_id(self) -> int:
         return -1
 
-    def load(self, game_id: int) -> List[Word]:
+    def load(self) -> List[Word]:
         return []
 
-    def select_word(self, word_id: int) -> None:
+    def load_hints(self) -> List[Hint]:
+        return []
+
+    def guess(self, word_id: int) -> None:
         pass
+
+    def add_hint(self, hint: Hint) -> None:
+        pass
+
+
+class UnexpectedStateException(Exception):
+    pass
 
 
 class Game:
@@ -42,8 +68,17 @@ class Game:
     def id(self):
         return self._state.game_id
 
-    def generate_hint(self) -> str:
+    def get_state(self) -> Dict[str, Any]:
+        return self._state.load()
+
+    def end_turn(self) -> None:
         pass
+
+    def add_hint(self, hint: Hint) -> None:
+        self._state.add_hint(hint)
+
+    def guess(self, word_id: int) -> None:
+        self._state.guess(word_id)
 
 
 class GameAlreadyExistsException(Exception):
@@ -59,7 +94,7 @@ class SQLiteGameState(GameState):
     def game_id(self) -> int:
         return self._game_id
 
-    def load(self) -> List[Word]:
+    def load(self) -> Dict[str, Any]:
         active_words = self._con.execute(
             """
             SELECT word_id, word, color, selected_at
@@ -73,12 +108,31 @@ class SQLiteGameState(GameState):
             (self._game_id,),
         ).fetchall()
 
-        return [
-            Word(w["word_id"], w["name"], w["color"], w["selected_at"])
-            for w in active_words
-        ]
+        active_player = self._con.execute(
+            """
+            SELECT color, role
+            FROM turns
+            WHERE game_id = ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """,
+            (self._game_id,),
+        ).fetchone()
 
-    def select_word(self, word_id: int) -> None:
+        return {
+            "words": [
+                Word(w["word_id"], w["name"], w["color"], w["selected_at"])
+                for w in active_words
+            ],
+            "active_player": {
+                "color": active_player["color"],
+                "role": active_player["role"],
+            },
+        }
+
+        return
+
+    def guess(self, word_id: int) -> None:
         self._con.execute(
             """
             INSERT INTO
@@ -86,6 +140,17 @@ class SQLiteGameState(GameState):
             VALUES (?, ?, strftime('%s','now'))
         """,
             (self._game_id, word_id),
+        )
+        self._con.commit()
+
+    def add_hint(self, hint: Hint) -> None:
+        self._con.execute(
+            """
+            INSERT INTO
+                hints (game_id, hint, num, created_at)
+            VALUES (?, ?, ?, strftime('%s','now'))
+        """,
+            (self._game_id, hint.word, hint.num),
         )
         self._con.commit()
 
@@ -124,6 +189,14 @@ class SQLiteGameManager:
         self._con.executemany(
             "INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?);",
             active_words,
+        )
+        self._con.execute(
+            """
+            INSERT INTO
+                turns (game_id, color, role, timestamp)
+            VALUES (?, ?, ?, strftime('%s','now'))
+                """,
+            (game.id, Color.BLUE.value, Role.SPYMASTER.value),
         )
 
         self._con.commit()
