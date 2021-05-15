@@ -49,11 +49,17 @@ class GameState:
     def game_id(self) -> int:
         return -1
 
+    def start_game(self) -> None:
+        pass
+
+    def add_player(self, session_id: str, color: Color, role: Role) -> None:
+        pass
+
+    def remove_player(self, session_id: str) -> None:
+        pass
+
     def load(self) -> Dict[str, Any]:
         return {}
-
-    def load_hints(self) -> List[Hint]:
-        return []
 
     def guess(self, word_id: int) -> None:
         pass
@@ -61,21 +67,18 @@ class GameState:
     def add_hint(self, hint: Hint) -> None:
         pass
 
-    def set_active_player(self, color: Color, role: Role) -> None:
-        pass
-
     def commit(self) -> None:
         pass
 
 
 class UnexpectedStateException(Exception):
-    pass
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class Game:
-    def __init__(self, color: Color, role: Role, state: GameState):
-        self._color = color
-        self._role = role
+    def __init__(self, session_id: str, state: GameState):
+        self._session_id = session_id
         self._state = state
 
     @property
@@ -85,12 +88,21 @@ class Game:
     def get_state(self) -> Dict[str, Any]:
         return self._state.load()
 
+    def start(self) -> None:
+        pass
+
+    def join(self, color: Color, role: Role) -> None:
+        pass
+
+    def leave(self) -> None:
+        pass
+
     def end_turn(self) -> None:
         pass
 
     def add_hint(self, hint: Hint) -> None:
         self._state.add_hint(hint)
-        self._state.set_active_player(self._color.toggle(), Role.PLAYER)
+        # self._state.set_active_player(self._color.toggle(), Role.PLAYER)
         self._state.commit()
 
     def guess(self, word_id: int) -> None:
@@ -190,8 +202,60 @@ class SQLiteGameState(GameState):
             (self._game_id, hint.word, hint.num),
         )
 
-    def set_active_player(self, color: Color, role: Role) -> None:
+    def start_game(self) -> None:
         pass
+
+    def _color_role_is_occupied(self, color: Color, role: Role) -> bool:
+        players = self._con.execute(
+            """
+            SELECT session_id
+            FROM players
+            WHERE game_id = ? AND color = ? AND role = ?
+            """,
+            (self._game_id, color.value, role.value),
+        ).fetchone()
+        return bool(players)
+
+    def add_player(
+        self, session_id: str, is_admin: bool, color: Color, role: Role
+    ) -> None:
+        if self._color_role_is_occupied(color, role):
+            raise UnexpectedStateException(
+                f"A player with color {color} and role {Role} already exists."
+            )
+
+        self._con.execute(
+            """
+            INSERT INTO
+                players (game_id, session_id, color, role, is_admin)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+            (self._game_id, session_id, color.value, role.value, is_admin),
+        )
+
+    def _player_exists(self, session_id: str) -> bool:
+        players = self._con.execute(
+            """
+            SELECT 1
+            FROM players
+            WHERE game_id = ? AND session_id = ?
+            """,
+            (self._game_id, session_id),
+        ).fetchone()
+        return bool(players)
+
+    def remove_player(self, session_id: str) -> None:
+        if not self._player_exists(session_id):
+            raise UnexpectedStateException(
+                f"Player with session id {session_id} does not exist."
+            )
+        self._con.execute(
+            """
+            DELETE FROM players
+            WHERE game_id = ? AND session_id = ?
+        """,
+            (self._game_id, session_id),
+        )
 
     def commit(self) -> None:
         self._con.commit()
