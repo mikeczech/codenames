@@ -1,4 +1,4 @@
-from typing import Dict, Any List, Tuple, Optional
+from typing import Dict, Union, Any, List, Tuple, Optional
 from itertools import chain
 from datetime import datetime
 from dataclasses import dataclass
@@ -15,10 +15,16 @@ class Color(Enum):
     RED = 1
     BLUE = 2
 
+    def toggle(self):
+        return Color.BLUE if self == Color.RED else Color.RED
+
 
 class Role(Enum):
     PLAYER = 1
     SPYMASTER = 2
+
+    def toggle(self):
+        return Role.PLAYER if self == Role.SPYMASTER else Role.PLAYER
 
 
 @dataclass
@@ -43,8 +49,8 @@ class GameState:
     def game_id(self) -> int:
         return -1
 
-    def load(self) -> List[Word]:
-        return []
+    def load(self) -> Dict[str, Any]:
+        return {}
 
     def load_hints(self) -> List[Hint]:
         return []
@@ -55,13 +61,21 @@ class GameState:
     def add_hint(self, hint: Hint) -> None:
         pass
 
+    def set_active_player(self, color: Color, role: Role) -> None:
+        pass
+
+    def commit(self) -> None:
+        pass
+
 
 class UnexpectedStateException(Exception):
     pass
 
 
 class Game:
-    def __init__(self, state: GameState):
+    def __init__(self, color: Color, role: Role, state: GameState):
+        self._color = color
+        self._role = role
         self._state = state
 
     @property
@@ -76,6 +90,8 @@ class Game:
 
     def add_hint(self, hint: Hint) -> None:
         self._state.add_hint(hint)
+        self._state.set_active_player(self._color.toggle(), Role.PLAYER)
+        self._state.commit()
 
     def guess(self, word_id: int) -> None:
         self._state.guess(word_id)
@@ -87,8 +103,8 @@ class GameAlreadyExistsException(Exception):
 
 class SQLiteGameState(GameState):
     def __init__(self, game_id: int, con: Connection):
-        self._con = con
         self._game_id = game_id
+        self._con = con
 
     @property
     def game_id(self) -> int:
@@ -97,13 +113,23 @@ class SQLiteGameState(GameState):
     def load(self) -> Dict[str, Any]:
         active_words = self._con.execute(
             """
-            SELECT word_id, word, color, selected_at
+            SELECT word_id, value, color, selected_at
             FROM active_words a
             LEFT JOIN words w
             ON w.id = a.word_id
             LEFT JOIN game_moves c
             ON c.game_id = a.game_id AND c.word_id  = a.word_id
             WHERE game_id = ?
+            """,
+            (self._game_id,),
+        ).fetchall()
+
+        hints = self._con.execute(
+            """
+            SELECT hint, num, color, created_at
+            FROM hints
+            WHERE game_id = ?
+            ORDER BY created_at DESC
             """,
             (self._game_id,),
         ).fetchall()
@@ -121,16 +147,28 @@ class SQLiteGameState(GameState):
 
         return {
             "words": [
-                Word(w["word_id"], w["name"], w["color"], w["selected_at"])
+                {
+                    "id": w["word_id"],
+                    "value": w["value"],
+                    "color": w["color"],
+                    "selected_at": w["selected_at"],
+                }
                 for w in active_words
+            ],
+            "hints": [
+                {
+                    "hint": h["hint"],
+                    "num": h["num"],
+                    "color": h["color"],
+                    "created_at": h["created_at"],
+                }
+                for h in hints
             ],
             "active_player": {
                 "color": active_player["color"],
                 "role": active_player["role"],
             },
         }
-
-        return
 
     def guess(self, word_id: int) -> None:
         self._con.execute(
@@ -141,7 +179,6 @@ class SQLiteGameState(GameState):
         """,
             (self._game_id, word_id),
         )
-        self._con.commit()
 
     def add_hint(self, hint: Hint) -> None:
         self._con.execute(
@@ -152,6 +189,11 @@ class SQLiteGameState(GameState):
         """,
             (self._game_id, hint.word, hint.num),
         )
+
+    def set_active_player(self, color: Color, role: Role) -> None:
+        pass
+
+    def commit(self) -> None:
         self._con.commit()
 
 
