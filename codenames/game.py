@@ -83,7 +83,7 @@ class GameState:
         pass
 
 
-class UnexpectedStateException(Exception):
+class StateException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
 
@@ -238,10 +238,10 @@ class SQLiteGameState(GameState):
 
     def start_game(self) -> None:
         if self._has_started():
-            raise UnexpectedStateException(f"Game {self._game_id} has already started.")
+            raise StateException(f"Game {self._game_id} has already started.")
 
         if not self._is_ready():
-            raise UnexpectedStateException(f"Game {self._game_id} is not ready.")
+            raise StateException(f"Game {self._game_id} is not ready.")
 
         self._con.execute(
             """
@@ -267,7 +267,7 @@ class SQLiteGameState(GameState):
         self, session_id: str, is_admin: bool, color: Color, role: Role
     ) -> None:
         if self._color_role_is_occupied(color, role):
-            raise UnexpectedStateException(
+            raise StateException(
                 f"A player with color {color} and role {Role} already exists."
             )
 
@@ -293,9 +293,7 @@ class SQLiteGameState(GameState):
 
     def remove_player(self, session_id: str) -> None:
         if not self._player_exists(session_id):
-            raise UnexpectedStateException(
-                f"Player with session id {session_id} does not exist."
-            )
+            raise StateException(f"Player with session id {session_id} does not exist.")
         self._con.execute(
             """
             DELETE FROM players
