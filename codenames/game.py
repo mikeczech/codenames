@@ -27,6 +27,18 @@ class Role(Enum):
         return Role.PLAYER if self == Role.SPYMASTER else Role.PLAYER
 
 
+class Condition(Enum):
+    NOT_STARTED = 1
+    RED_SPY = 2
+    RED_PLAYER = 3
+    BLUE_SPY = 4
+    BLUE_PLAYER = 5
+    FINISHED = 6
+
+
+NUM_PLAYERS = 4
+
+
 @dataclass
 class Word:
     id: str
@@ -146,12 +158,12 @@ class SQLiteGameState(GameState):
             (self._game_id,),
         ).fetchall()
 
-        active_player = self._con.execute(
+        latest_turn = self._con.execute(
             """
-            SELECT color, role
+            SELECT condition
             FROM turns
             WHERE game_id = ?
-            ORDER BY timestamp DESC
+            ORDER BY create_random DESC
             LIMIT 1
             """,
             (self._game_id,),
@@ -176,10 +188,7 @@ class SQLiteGameState(GameState):
                 }
                 for h in hints
             ],
-            "active_player": {
-                "color": active_player["color"],
-                "role": active_player["role"],
-            },
+            "metadata": {"condition": latest_turn["condition"]},
         }
 
     def guess(self, word_id: int) -> None:
@@ -202,8 +211,46 @@ class SQLiteGameState(GameState):
             (self._game_id, hint.word, hint.num),
         )
 
+    def _has_started(self) -> bool:
+        current_turn = self._con.execute(
+            """
+            SELECT condition
+            FROM turns
+            WHERE game_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (self._game_id,),
+        ).fetchone()
+        return current_turn["condition"] != Condition.NOT_STARTED.value
+
+    def _is_ready(self) -> bool:
+        players = self._con.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM players
+            WHERE game_id = ?
+            LIMIT 1
+            """,
+            (self._game_id,),
+        ).fetchone()
+        return players["count"] == NUM_PLAYERS
+
     def start_game(self) -> None:
-        pass
+        if self._has_started():
+            raise UnexpectedStateException(f"Game {self._game_id} has already started.")
+
+        if not self._is_ready():
+            raise UnexpectedStateException(f"Game {self._game_id} is not ready.")
+
+        self._con.execute(
+            """
+            INSERT INTO
+                turns (game_id, condition, created_at)
+            VALUES (?, ?, strftime('%s','now'))
+        """,
+            (self._game_id, Condition.BLUE_SPY.value),
+        )
 
     def _color_role_is_occupied(self, color: Color, role: Role) -> bool:
         players = self._con.execute(
@@ -299,10 +346,10 @@ class SQLiteGameManager:
         self._con.execute(
             """
             INSERT INTO
-                turns (game_id, color, role, timestamp)
-            VALUES (?, ?, ?, strftime('%s','now'))
+                turns (game_id, condition, created_at)
+            VALUES (?, ?, ('%s','now'))
                 """,
-            (game.id, Color.BLUE.value, Role.SPYMASTER.value),
+            (game.id, Condition.NOT_STARTED.value),
         )
 
         self._con.commit()

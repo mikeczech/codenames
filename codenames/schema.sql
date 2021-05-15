@@ -8,13 +8,6 @@ CREATE TABLE games (
   name TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE turns (
-  game_id INTEGER NOT NULL,
-  color INTEGER NOT NULL,
-  role INTEGER NOT NULL,
-  created_at INTEGER NOT NULL
-);
-
 CREATE TABLE words (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   value TEXT UNIQUE NOT NULL
@@ -46,4 +39,10 @@ CREATE TABLE players (
   color TEXT NOT NULL,
   role TEXT NOT NULL,
   is_admin INTEGER NOT NULL
+);
+
+CREATE TABLE turns (
+  game_id INTEGER NOT NULL,
+  condition Integer NOT NULL,
+  created_at INTEGER NOT NULL
 );
