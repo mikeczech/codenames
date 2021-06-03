@@ -14,6 +14,8 @@ from sqlite3 import Connection
 class Color(Enum):
     RED = 1
     BLUE = 2
+    NEUTRAL = 3
+    ASSASSIN = 4
 
     def toggle(self):
         return Color.BLUE if self == Color.RED else Color.RED
@@ -89,8 +91,7 @@ class StateException(Exception):
 
 
 class Game:
-    def __init__(self, session_id: str, state: GameState):
-        self._session_id = session_id
+    def __init__(self, state: GameState):
         self._state = state
 
     @property
@@ -137,13 +138,13 @@ class SQLiteGameState(GameState):
     def load(self) -> Dict[str, Any]:
         active_words = self._con.execute(
             """
-            SELECT word_id, value, color, selected_at
+            SELECT a.word_id, value, color, selected_at
             FROM active_words a
             LEFT JOIN words w
             ON w.id = a.word_id
-            LEFT JOIN game_moves c
+            LEFT JOIN moves c
             ON c.game_id = a.game_id AND c.word_id  = a.word_id
-            WHERE game_id = ?
+            WHERE a.game_id = ?
             """,
             (self._game_id,),
         ).fetchall()
@@ -163,7 +164,7 @@ class SQLiteGameState(GameState):
             SELECT condition
             FROM turns
             WHERE game_id = ?
-            ORDER BY create_random DESC
+            ORDER BY created_at DESC
             LIMIT 1
             """,
             (self._game_id,),
@@ -172,23 +173,23 @@ class SQLiteGameState(GameState):
         return {
             "words": [
                 {
-                    "id": w["word_id"],
-                    "value": w["value"],
-                    "color": w["color"],
-                    "selected_at": w["selected_at"],
+                    "id": w[0],
+                    "value": w[1],
+                    "color": Color(w[2]),
+                    "selected_at": w[3],
                 }
                 for w in active_words
             ],
             "hints": [
                 {
-                    "hint": h["hint"],
-                    "num": h["num"],
-                    "color": h["color"],
-                    "created_at": h["created_at"],
+                    "hint": h[0],
+                    "num": h[1],
+                    "color": Color(h[2]),
+                    "created_at": h[3],
                 }
                 for h in hints
             ],
-            "metadata": {"condition": latest_turn["condition"]},
+            "metadata": {"condition": Condition(latest_turn[0])},
         }
 
     def guess(self, word_id: int) -> None:
@@ -317,10 +318,10 @@ class SQLiteGameManager:
     ):
         self._con = con
         self._word_color_counts = {
-            "blue": num_blue,
-            "red": num_red,
-            "neutral": num_neutral,
-            "assassin": num_assassin,
+            Color.BLUE.value: num_blue,
+            Color.RED.value: num_red,
+            Color.NEUTRAL.value: num_neutral,
+            Color.ASSASSIN.value: num_assassin,
         }
 
     def exists(self, name: str) -> bool:
@@ -345,7 +346,7 @@ class SQLiteGameManager:
             """
             INSERT INTO
                 turns (game_id, condition, created_at)
-            VALUES (?, ?, ('%s','now'))
+            VALUES (?, ?, strftime('%s','now'))
                 """,
             (game.id, Condition.NOT_STARTED.value),
         )
@@ -364,15 +365,15 @@ class SQLiteGameManager:
         game = self._con.execute(
             "SELECT id from games WHERE name = ?", (name,)
         ).fetchone()
-        return Game(SQLiteGameState(game["id"], self._con))
+        return Game(SQLiteGameState(game[0], self._con))
 
     def _get_random_words(self) -> List[Word]:
         words = self._con.execute(
-            "SELECT id, word from words ORDER BY RANDOM() LIMIT ?",
+            "SELECT id, value from words ORDER BY RANDOM() LIMIT ?",
             (sum(self._word_color_counts.values()),),
         ).fetchall()
         random_colors = self._get_random_colors()
-        return [Word(w["id"], w["word"], c, None) for w, c in zip(words, random_colors)]
+        return [Word(w[0], w[1], c, None) for w, c in zip(words, random_colors)]
 
     def _get_random_colors(self) -> List[str]:
         ret = list(

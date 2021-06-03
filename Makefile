@@ -7,6 +7,9 @@ install:
 format:
 	poetry run black codenames/
 
+run-tests:
+	poetry run pytest tests/codenames
+
 run-backend:
 	FLASK_APP=codenames \
   FLASK_ENV=development \

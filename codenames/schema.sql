@@ -16,7 +16,7 @@ CREATE TABLE words (
 CREATE TABLE active_words (
   game_id INTEGER NOT NULL,
   word_id INTEGER NOT NULL,
-  color TEXT NOT NULL
+  color INTEGER NOT NULL
 );
 
 CREATE TABLE moves (
@@ -43,6 +43,6 @@ CREATE TABLE players (
 
 CREATE TABLE turns (
   game_id INTEGER NOT NULL,
-  condition Integer NOT NULL,
+  condition INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
