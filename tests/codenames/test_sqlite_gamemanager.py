@@ -27,57 +27,57 @@ def db_con():
 
     return con
 
+class TestSQLiteGameManager():
+    def test_create_random_game(self, db_con):
+        # given
+        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
-def test_create_random_game(db_con):
-    # given
-    manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        # when
+        game = manager.create_random("my_game")
 
-    # when
-    game = manager.create_random("my_game")
-
-    # then
-    assert game.id == 1
+        # then
+        assert game.id == 1
 
 
-def test_random_game_state_is_valid(db_con):
-    # given
-    manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+    def test_random_game_state_is_valid(self, db_con):
+        # given
+        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
-    # when
-    state = manager.create_random("my_game").get_state()
+        # when
+        state = manager.create_random("my_game").get_state()
 
-    # then
-    assert len(state["words"]) == 7
-    assert state["metadata"]["condition"] == Condition.NOT_STARTED
+        # then
+        assert len(state["words"]) == 7
+        assert state["metadata"]["condition"] == Condition.NOT_STARTED
 
-def test_initially_there_is_no_game(db_con):
-    # given
-    manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+    def test_initially_there_is_no_game(self, db_con):
+        # given
+        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
-    # when
-    result = manager.exists("my_game")
+        # when
+        result = manager.exists("my_game")
 
-    # then
-    assert not result
+        # then
+        assert not result
 
-def test_a_created_game_exists(db_con):
-    # given
-    manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
-    manager.create_random("my_game")
-
-    # when
-    result = manager.exists("my_game")
-
-    # then
-    assert result
-
-def test_creating_duplicates_fails(db_con):
-    # given
-    manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
-
-    # when
-    manager.create_random("my_game")
-
-    # then
-    with pytest.raises(GameAlreadyExistsException):
+    def test_a_created_game_exists(self, db_con):
+        # given
+        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
         manager.create_random("my_game")
+
+        # when
+        result = manager.exists("my_game")
+
+        # then
+        assert result
+
+    def test_creating_duplicates_fails(self, db_con):
+        # given
+        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+
+        # when
+        manager.create_random("my_game")
+
+        # then
+        with pytest.raises(GameAlreadyExistsException):
+            manager.create_random("my_game")
