@@ -12,6 +12,7 @@ from codenames.game import (
     Role,
     Condition,
     GameAlreadyExistsException,
+    StateException,
 )
 
 
@@ -135,6 +136,25 @@ class TestSQLiteGameState:
         metadata = state.load()["metadata"]
         assert metadata["condition"] == Condition.BLUE_SPY
 
+    def test_start_not_ready_game(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when / then
+        with pytest.raises(StateException):
+            state.start_game()
+
+    def test_starting_a_game_twice_fails(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+        self._add_players(db_con)
+
+        # when / then
+        with pytest.raises(StateException):
+            state.start_game()
+            state.start_game()
 
 
 class TestSQLiteGameManager:

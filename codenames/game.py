@@ -218,7 +218,7 @@ class SQLiteGameState(GameState):
             SELECT condition
             FROM turns
             WHERE game_id = ?
-            ORDER BY created_at DESC
+            ORDER BY id DESC
             LIMIT 1
             """,
             (self._game_id,),
