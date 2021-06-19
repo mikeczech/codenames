@@ -182,7 +182,7 @@ class SQLiteGameState(GameState):
             ],
             "hints": [
                 {
-                    "hint": h[0],
+                    "word": h[0],
                     "num": h[1],
                     "color": Color(h[2]),
                     "created_at": h[3],
@@ -202,14 +202,14 @@ class SQLiteGameState(GameState):
             (self._game_id, word_id),
         )
 
-    def add_hint(self, hint: Hint) -> None:
+    def add_hint(self, word: str, num: int, color: Color) -> None:
         self._con.execute(
             """
             INSERT INTO
-                hints (game_id, hint, num, created_at)
-            VALUES (?, ?, ?, strftime('%s','now'))
+                hints (game_id, hint, num, color, created_at)
+            VALUES (?, ?, ?, ?, strftime('%s','now'))
         """,
-            (self._game_id, hint.word, hint.num),
+            (self._game_id, word, num, color.value),
         )
 
     def _has_started(self) -> bool:

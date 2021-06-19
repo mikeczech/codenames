@@ -4,7 +4,14 @@ import sqlite3
 
 import pytest
 
-from codenames.game import SQLiteGameManager, Condition, GameAlreadyExistsException
+from codenames.game import (
+    SQLiteGameManager,
+    Hint,
+    SQLiteGameState,
+    Color,
+    Condition,
+    GameAlreadyExistsException,
+)
 
 
 @pytest.fixture
@@ -27,7 +34,77 @@ def db_con():
 
     return con
 
-class TestSQLiteGameManager():
+
+class TestSQLiteGameState:
+    def _create_default_game(self, db_con):
+        """ Adds a simple game to the database. """
+        active_words = [(42, 1, Color.RED.value), (42, 2, Color.BLUE.value)]
+        turns = [(42, Condition.NOT_STARTED.value)]
+        db_con.executemany(
+            """
+            INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?)
+        """,
+            active_words,
+        )
+        db_con.executemany(
+            """
+            INSERT INTO turns (game_id, condition, created_at) VALUES (?, ?, strftime('%s', 'now'))
+        """,
+            turns,
+        )
+
+    def test_load(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when
+        result = state.load()
+
+        # then
+        assert result == {
+            "words": [
+                {
+                    "id": 1,
+                    "value": "Hollywood",
+                    "color": Color.RED,
+                    "selected_at": None,
+                },
+                {"id": 2, "value": "Well", "color": Color.BLUE, "selected_at": None},
+            ],
+            "hints": [],
+            "metadata": {"condition": Condition.NOT_STARTED},
+        }
+
+    def test_guess_word(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when
+        state.guess(1)
+
+        # then
+        result = state.load()
+        assert result["words"][0]["selected_at"]
+        assert not result["words"][1]["selected_at"]
+
+    def test_add_hint(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when
+        state.add_hint("myhint", 2, Color.RED)
+
+        # then
+        result = state.load()["hints"][0]
+        assert result["word"] == "myhint"
+        assert result["num"] == 2
+        assert result["color"] == Color.RED
+
+
+class TestSQLiteGameManager:
     def test_create_random_game(self, db_con):
         # given
         manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
@@ -37,7 +114,6 @@ class TestSQLiteGameManager():
 
         # then
         assert game.id == 1
-
 
     def test_random_game_state_is_valid(self, db_con):
         # given

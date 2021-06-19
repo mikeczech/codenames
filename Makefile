@@ -6,6 +6,7 @@ install:
 
 format:
 	poetry run black codenames/
+	poetry run black tests/
 
 run-tests:
 	poetry run pytest tests/codenames
