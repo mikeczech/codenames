@@ -9,6 +9,7 @@ from codenames.game import (
     Hint,
     SQLiteGameState,
     Color,
+    Role,
     Condition,
     GameAlreadyExistsException,
 )
@@ -53,6 +54,20 @@ class TestSQLiteGameState:
             turns,
         )
 
+    def _add_players(self, db_con):
+        players = [
+                (42, 23, Color.RED.value, Role.PLAYER.value, False),
+                (42, 22, Color.BLUE.value, Role.SPYMASTER.value, True),
+                (42, 21, Color.RED.value, Role.PLAYER.value, False),
+                (42, 20, Color.BLUE.value, Role.SPYMASTER.value, False),
+        ]
+        db_con.executemany(
+            """
+            INSERT INTO players (game_id, session_id, color, role, is_admin) VALUES (?, ?, ?, ?, ?)
+        """,
+            players,
+        )
+
     def test_load(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
@@ -89,19 +104,37 @@ class TestSQLiteGameState:
         assert result["words"][0]["selected_at"]
         assert not result["words"][1]["selected_at"]
 
-    def test_add_hint(self, db_con):
+    def test_add_hints(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
         self._create_default_game(db_con)
 
         # when
-        state.add_hint("myhint", 2, Color.RED)
+        state.add_hint("myfirsthint", 2, Color.RED)
+        state.add_hint("mysecondhint", 3, Color.BLUE)
 
         # then
-        result = state.load()["hints"][0]
-        assert result["word"] == "myhint"
-        assert result["num"] == 2
-        assert result["color"] == Color.RED
+        result = state.load()["hints"]
+        assert result[0]["word"] == "myfirsthint"
+        assert result[0]["num"] == 2
+        assert result[0]["color"] == Color.RED
+        assert result[1]["word"] == "mysecondhint"
+        assert result[1]["num"] == 3
+        assert result[1]["color"] == Color.BLUE
+
+    def test_start_game(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+        self._add_players(db_con)
+
+        # when
+        state.start_game()
+
+        # then
+        metadata = state.load()["metadata"]
+        assert metadata["condition"] == Condition.BLUE_SPY
+
 
 
 class TestSQLiteGameManager:

@@ -154,7 +154,7 @@ class SQLiteGameState(GameState):
             SELECT hint, num, color, created_at
             FROM hints
             WHERE game_id = ?
-            ORDER BY created_at DESC
+            ORDER BY id ASC
             """,
             (self._game_id,),
         ).fetchall()
@@ -164,7 +164,7 @@ class SQLiteGameState(GameState):
             SELECT condition
             FROM turns
             WHERE game_id = ?
-            ORDER BY created_at DESC
+            ORDER BY id DESC
             LIMIT 1
             """,
             (self._game_id,),
@@ -223,7 +223,7 @@ class SQLiteGameState(GameState):
             """,
             (self._game_id,),
         ).fetchone()
-        return current_turn["condition"] != Condition.NOT_STARTED.value
+        return current_turn[0] != Condition.NOT_STARTED.value
 
     def _is_ready(self) -> bool:
         players = self._con.execute(
@@ -235,7 +235,7 @@ class SQLiteGameState(GameState):
             """,
             (self._game_id,),
         ).fetchone()
-        return players["count"] == NUM_PLAYERS
+        return players[0] == NUM_PLAYERS
 
     def start_game(self) -> None:
         if self._has_started():
