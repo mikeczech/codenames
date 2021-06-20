@@ -57,10 +57,10 @@ class TestSQLiteGameState:
 
     def _add_players(self, db_con):
         players = [
-                (42, 23, Color.RED.value, Role.PLAYER.value, False),
-                (42, 22, Color.BLUE.value, Role.SPYMASTER.value, True),
-                (42, 21, Color.RED.value, Role.PLAYER.value, False),
-                (42, 20, Color.BLUE.value, Role.SPYMASTER.value, False),
+            (42, "A23", Color.RED.value, Role.PLAYER.value, False),
+            (42, "A22", Color.BLUE.value, Role.SPYMASTER.value, True),
+            (42, "A21", Color.RED.value, Role.PLAYER.value, False),
+            (42, "A100", Color.BLUE.value, Role.SPYMASTER.value, False),
         ]
         db_con.executemany(
             """
@@ -89,6 +89,7 @@ class TestSQLiteGameState:
                 {"id": 2, "value": "Well", "color": Color.BLUE, "selected_at": None},
             ],
             "hints": [],
+            "players": [],
             "metadata": {"condition": Condition.NOT_STARTED},
         }
 
@@ -155,6 +156,78 @@ class TestSQLiteGameState:
         with pytest.raises(StateException):
             state.start_game()
             state.start_game()
+
+    def test_add_players(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when
+        state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+        state.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
+        state.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
+        state.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
+
+        # then
+        result = state.load()["players"]
+        assert result[0] == {
+            "session_id": "ABDB23",
+            "color": Color.RED,
+            "role": Role.PLAYER,
+            "is_admin": False,
+        }
+        assert result[1] == {
+            "session_id": "ABDB55",
+            "color": Color.BLUE,
+            "role": Role.PLAYER,
+            "is_admin": False,
+        }
+        assert result[2] == {
+            "session_id": "ABDB33",
+            "color": Color.RED,
+            "role": Role.SPYMASTER,
+            "is_admin": True,
+        }
+        assert result[3] == {
+            "session_id": "ABDB67",
+            "color": Color.BLUE,
+            "role": Role.SPYMASTER,
+            "is_admin": False,
+        }
+
+    def test_adding_same_role_twice_fails(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+
+        # when / then
+        with pytest.raises(StateException):
+            state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+            state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+
+    def test_remove_players(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+        self._add_players(db_con)
+
+        # when
+        state.remove_player("A100")
+
+        # then
+        result = state.load()["players"]
+        assert len(result) == 3
+        assert "A100" not in [r["session_id"] for r in result]
+
+    def test_removing_not_existing_player_fails(self, db_con):
+        # given
+        state = SQLiteGameState(42, db_con)
+        self._create_default_game(db_con)
+        self._add_players(db_con)
+
+        # when / then
+        with pytest.raises(StateException):
+            state.remove_player("A222")
 
 
 class TestSQLiteGameManager:

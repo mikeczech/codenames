@@ -159,6 +159,15 @@ class SQLiteGameState(GameState):
             (self._game_id,),
         ).fetchall()
 
+        players = self._con.execute(
+            """
+            SELECT session_id, color, role, is_admin
+            FROM players
+            WHERE game_id = ?
+            """,
+            (self._game_id,),
+        ).fetchall()
+
         latest_turn = self._con.execute(
             """
             SELECT condition
@@ -188,6 +197,15 @@ class SQLiteGameState(GameState):
                     "created_at": h[3],
                 }
                 for h in hints
+            ],
+            "players": [
+                {
+                    "session_id": p[0],
+                    "color": Color(p[1]),
+                    "role": Role(p[2]),
+                    "is_admin": bool(p[3]),
+                }
+                for p in players
             ],
             "metadata": {"condition": Condition(latest_turn[0])},
         }

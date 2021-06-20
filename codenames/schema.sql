@@ -38,8 +38,8 @@ CREATE TABLE hints (
 CREATE TABLE players (
   game_id INTEGER NOT NULL,
   session_id TEXT NOT NULL,
-  color TEXT NOT NULL,
-  role TEXT NOT NULL,
+  color INTEGER NOT NULL,
+  role INTEGER NOT NULL,
   is_admin INTEGER NOT NULL
 );
 
