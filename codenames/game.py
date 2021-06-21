@@ -66,7 +66,9 @@ class GameState:
     def start_game(self) -> None:
         pass
 
-    def add_player(self, session_id: str, color: Color, role: Role) -> None:
+    def add_player(
+        self, session_id: str, is_admin: bool, color: Color, role: Role
+    ) -> None:
         pass
 
     def remove_player(self, session_id: str) -> None:
@@ -78,7 +80,7 @@ class GameState:
     def guess(self, word_id: int) -> None:
         pass
 
-    def add_hint(self, hint: Hint) -> None:
+    def add_hint(self, word: str, num: int) -> None:
         pass
 
     def commit(self) -> None:
@@ -90,35 +92,74 @@ class StateException(Exception):
         super().__init__(message)
 
 
+def load_state(func):
+    def wrapper(*args):
+        state = args[0]._state.load()
+        func(*(args + (state,)))
+    return wrapper
+
 class Game:
     def __init__(self, state: GameState):
         self._state = state
+        self._session_id = None
+        self._is_admin = None
+        self._color = None
+        self._role = None
 
     @property
     def id(self):
         return self._state.game_id
 
+    @property
+    def color(self):
+        return self._color
+
+    @property
+    def role(self):
+        return self._role
+
     def get_state(self) -> Dict[str, Any]:
         return self._state.load()
 
     def start(self) -> None:
-        pass
+        if not self._is_admin:
+            raise StateException("Only an admin can start a game")
+        self._state.start_game()
 
-    def join(self, color: Color, role: Role) -> None:
-        pass
+    def join(self, session_id: str, is_admin: bool, color: Color, role: Role) -> None:
+        self._state.add_player(session_id, is_admin, color, role)
+        self._session_id = session_id
+        self._is_admin = is_admin
+        self._color = color
+        self._role = role
 
     def leave(self) -> None:
-        pass
+        if not self._session_id:
+            raise StateException("You have not joined a game")
+        self._state.remove_player(self._session_id)
+        self._session_id = None
+        self._is_admin = None
+        self._color = None
+        self._role = None
 
     def end_turn(self) -> None:
         pass
 
-    def add_hint(self, hint: Hint) -> None:
-        self._state.add_hint(hint)
-        # self._state.set_active_player(self._color.toggle(), Role.PLAYER)
-        self._state.commit()
+    def add_hint(self, word: str, num: int) -> None:
+        pass
 
-    def guess(self, word_id: int) -> None:
+    @load_state
+    def guess(self, word_id: int, state: Dict[str, Any]) -> None:
+        current_hint = state["hints"][-1]
+        if current_hint["color"] != self._color:
+            raise StateException("It's not your turn")
+
+        # turns made on the current hint
+        turns = [t for t in state["turns"] if t["hint_id"] == current_hint["id"]]
+        if len(turns) >= current_hint["num"] + 1:
+            self.end_turn()
+            return
+
         self._state.guess(word_id)
 
 

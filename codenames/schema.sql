@@ -45,6 +45,7 @@ CREATE TABLE players (
 
 CREATE TABLE turns (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  hint_id INTEGER,
   game_id INTEGER NOT NULL,
   condition INTEGER NOT NULL,
   created_at INTEGER NOT NULL
