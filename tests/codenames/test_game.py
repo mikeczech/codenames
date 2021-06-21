@@ -1,7 +1,8 @@
 from unittest.mock import MagicMock
 import pytest
 
-from codenames.game import Game, Color, Role
+from codenames.game import Game, Color, GuessesExceededException, Role, StateException
+
 
 class TestGame:
     def test_join(self):
@@ -22,14 +23,29 @@ class TestGame:
         state = MagicMock()
         state.load.return_value = {
             "hints": [{"color": Color.RED, "word": "foo", "num": 2}],
-            "turns": []
+            "turns": [],
         }
         game = Game(state)
         game.join("A100", False, Color.RED, Role.PLAYER)
-
 
         # when
         game.guess(11)
 
         # then
         state.guess.assert_called_with(11)
+
+    def test_num_of_guesses_is_limited(self):
+        # given
+        state = MagicMock()
+        state.load.return_value = {
+            "hints": [{"id": 23, "color": Color.RED, "word": "foo", "num": 2}],
+            "turns": [
+                {"hint_id": 23} for _ in range(3)
+            ],  # we already have three guesses for hint 24
+        }
+        game = Game(state)
+        game.join("A100", False, Color.RED, Role.PLAYER)
+
+        # when / then
+        with pytest.raises(GuessesExceededException):
+            game.guess(11)

@@ -92,11 +92,18 @@ class StateException(Exception):
         super().__init__(message)
 
 
+class GuessesExceededException(Exception):
+    def __init__(self):
+        super().__init__()
+
+
 def load_state(func):
     def wrapper(*args):
         state = args[0]._state.load()
         func(*(args + (state,)))
+
     return wrapper
+
 
 class Game:
     def __init__(self, state: GameState):
@@ -157,8 +164,7 @@ class Game:
         # turns made on the current hint
         turns = [t for t in state["turns"] if t["hint_id"] == current_hint["id"]]
         if len(turns) >= current_hint["num"] + 1:
-            self.end_turn()
-            return
+            raise GuessesExceededException()
 
         self._state.guess(word_id)
 
