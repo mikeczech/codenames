@@ -102,14 +102,6 @@ class GuessesExceededException(Exception):
         super().__init__()
 
 
-def load_state(func):
-    def wrapper(*args):
-        state = args[0]._state.load()
-        func(*(args + (state,)))
-
-    return wrapper
-
-
 class Game:
     def __init__(self, state: GameState):
         self._state = state
@@ -164,8 +156,8 @@ class Game:
     def add_hint(self, word: str, num: int) -> None:
         pass
 
-    @load_state
-    def guess(self, word_id: int, state: Dict[str, Any]) -> None:
+    def guess(self, word_id: int) -> None:
+        state = self._state.load()
         if not self.logged_in:
             raise StateException("You have not joined the game yet.")
 
