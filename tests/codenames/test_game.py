@@ -48,7 +48,7 @@ class TestGame:
 
         assert ex.value.message == "No hint given. This should not happen."
 
-    def test_guess(self):
+    def test_guessing(self):
         # given
         state = MagicMock()
         state.load.return_value = {
