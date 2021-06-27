@@ -96,6 +96,172 @@ class GuessesExceededException(Exception):
         super().__init__()
 
 
+class GameState:
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        self._persister = persister
+        self._session_id = session_id
+        self._is_admin = is_admin
+
+    @property
+    def persister(self) -> GamePersister:
+        return self._persister
+
+    @property
+    def session_id(self) -> str:
+        return self._session_id
+
+    @property
+    def is_admin(self) -> bool:
+        return self._is_admin
+
+
+class NotStartedGameState(GameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def start_game(self) -> "BlueSpyTurnGameState":
+        self._persister.start_game()
+        return BlueSpyTurnGameState(self.session_id, self.is_admin, self.persister)
+
+    def join(self, color: Color, role: Role) -> "NotStartedGameState":
+        self._persister.add_player(self._session_id, self._is_admin, color, role)
+        return self
+
+    def guess(
+        self, word_id: int
+    ) -> Union[
+        "BlueSpyTurnGameState",
+        "RedSpyTurnGameState",
+        "BluePlayerTurnGameState",
+        "RedPlayerTurnGameState",
+    ]:
+        raise StateException("The game has not started yet")
+
+    def give_hint(
+        self, word: str, num: int
+    ) -> Union["BluePlayerTurnGameState", "RedPlayerTurnGameState"]:
+        raise StateException("The game has not started yet")
+
+    def end_turn(self) -> Union["BlueSpyTurnGameState", "RedSpyTurnGameState"]:
+        raise StateException("The game has not started yet")
+
+
+class SpyTurnGameState(GameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def start_game(self) -> "BlueSpyTurnGameState":
+        raise StateException("The game has already started")
+
+    def join(self, color: Color, role: Role) -> "NotStartedGameState":
+        raise StateException("The game has already started")
+
+    def guess(
+        self, word_id: int
+    ) -> Union[
+        "BlueSpyTurnGameState",
+        "RedSpyTurnGameState",
+        "BluePlayerTurnGameState",
+        "RedPlayerTurnGameState",
+    ]:
+        raise StateException("A spy can give hints only")
+
+    def end_turn(self) -> Union["BlueSpyTurnGameState", "RedSpyTurnGameState"]:
+        raise StateException("A spy must provide a hint")
+
+
+class BlueSpyTurnGameState(SpyTurnGameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def give_hint(
+        self, word: str, num: int
+    ) -> Union["BluePlayerTurnGameState", "RedPlayerTurnGameState"]:
+        raise NotImplementedError()
+
+
+class RedSpyTurnGameState(SpyTurnGameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def give_hint(
+        self, word: str, num: int
+    ) -> Union["BluePlayerTurnGameState", "RedPlayerTurnGameState"]:
+        raise NotImplementedError()
+
+
+class PlayerTurnGameState(GameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def count_remaining_guesses(self) -> int:
+        game = self.persister.load()
+        latest_hint = game["hints"][-1]
+        round_turns = []
+        for t in game["turns"]:
+            if t["hint_id"] == latest_hint["id"]:
+                t.append(round_turns)
+        return (latest_hint["num"] + 1) - len(round_turns)
+
+    def start_game(self) -> "BlueSpyTurnGameState":
+        raise StateException("The game has already started")
+
+    def join(self, color: Color, role: Role) -> "NotStartedGameState":
+        raise StateException("The game has already started")
+
+    def give_hint(
+        self, word: str, num: int
+    ) -> Union["BluePlayerTurnGameState", "RedPlayerTurnGameState"]:
+        raise StateException("A player cannot give hints")
+
+
+class BluePlayerTurnGameState(PlayerTurnGameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def guess(
+        self, word_id: int
+    ) -> Union[
+        "BlueSpyTurnGameState",
+        "RedSpyTurnGameState",
+        "BluePlayerTurnGameState",
+        "RedPlayerTurnGameState",
+    ]:
+        self._persister.add_guess(word_id)
+        if self.count_remaining_guesses() == 0:
+            return self.end_turn()
+        return BluePlayerTurnGameState(self.session_id, self.is_admin, self.persister)
+
+    def end_turn(self) -> Union["BlueSpyTurnGameState", "RedSpyTurnGameState"]:
+        return RedSpyTurnGameState(self.session_id, self.is_admin, self.persister)
+
+
+class RedPlayerTurnGameState(PlayerTurnGameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+    def guess(
+        self, word_id: int
+    ) -> Union[
+        "BlueSpyTurnGameState",
+        "RedSpyTurnGameState",
+        "BluePlayerTurnGameState",
+        "RedPlayerTurnGameState",
+    ]:
+        self._persister.add_guess(word_id)
+        if self.count_remaining_guesses() == 0:
+            return self.end_turn()
+        return RedPlayerTurnGameState(self.session_id, self.is_admin, self.persister)
+
+    def end_turn(self) -> Union["BlueSpyTurnGameState", "RedSpyTurnGameState"]:
+        return BlueSpyTurnGameState(self.session_id, self.is_admin, self.persister)
+
+
+class FinishedGameState(GameState):
+    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+        super().__init__(session_id, is_admin, persister)
+
+
 class Game:
     def __init__(self, persister: GamePersister):
         self._persister = persister
