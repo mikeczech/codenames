@@ -52,12 +52,6 @@ class Word:
         return bool(self.selected_at)
 
 
-@dataclass
-class Hint:
-    word: str
-    num: int
-
-
 class GamePersister:
     @property
     def game_id(self) -> int:
