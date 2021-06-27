@@ -90,6 +90,11 @@ class GameState:
 class StateException(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+        self._message = message
+
+    @property
+    def message(self):
+        return self._message
 
 
 class GuessesExceededException(Exception):
@@ -120,6 +125,10 @@ class Game:
     @property
     def color(self):
         return self._color
+
+    @property
+    def logged_in(self):
+        return bool(self._color)
 
     @property
     def role(self):
@@ -157,13 +166,25 @@ class Game:
 
     @load_state
     def guess(self, word_id: int, state: Dict[str, Any]) -> None:
-        current_hint = state["hints"][-1]
-        if current_hint["color"] != self._color:
-            raise StateException("It's not your turn")
+        if not self.logged_in:
+            raise StateException("You have not joined the game yet.")
 
-        # turns made on the current hint
-        turns = [t for t in state["turns"] if t["hint_id"] == current_hint["id"]]
-        if len(turns) >= current_hint["num"] + 1:
+        current_condition = state["metadata"]["condition"]
+        if state["metadata"]["condition"] in (Condition.BLUE_SPY, Condition.RED_SPY):
+            raise StateException("Still waiting for a hint.")
+
+        if self._color == Color.RED and current_condition == Condition.BLUE_PLAYER:
+            raise StateException("It's BLUEs turn.")
+        if self._color == Color.BLUE and current_condition == Condition.RED_PLAYER:
+            raise StateException("It's REDs turn.")
+
+        hints = state["hints"]
+        if len(hints) == 0:
+            raise StateException("No hint given. This should not happen.")
+
+        latest_hint = hints[-1]
+        round_turns = [t for t in state["turns"] if t["hint_id"] == latest_hint["id"]]
+        if len(round_turns) >= latest_hint["num"] + 1:
             raise GuessesExceededException()
 
         self._state.guess(word_id)
