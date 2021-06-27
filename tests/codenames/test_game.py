@@ -63,7 +63,7 @@ class TestGame:
         game.guess(11)
 
         # then
-        state.guess.assert_called_with(11)
+        state.add_guess.assert_called_with(11)
 
     def test_guessing_fails_if_spy_turn(self):
         # given

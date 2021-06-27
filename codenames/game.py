@@ -77,7 +77,7 @@ class GameState:
     def load(self) -> Dict[str, Any]:
         return {}
 
-    def guess(self, word_id: int) -> None:
+    def add_guess(self, word_id: int) -> None:
         pass
 
     def add_hint(self, word: str, num: int) -> None:
@@ -187,7 +187,7 @@ class Game:
         if len(round_turns) >= latest_hint["num"] + 1:
             raise GuessesExceededException()
 
-        self._state.guess(word_id)
+        self._state.add_guess(word_id)
 
 
 class GameAlreadyExistsException(Exception):
@@ -278,7 +278,7 @@ class SQLiteGameState(GameState):
             "metadata": {"condition": Condition(latest_turn[0])},
         }
 
-    def guess(self, word_id: int) -> None:
+    def add_guess(self, word_id: int) -> None:
         self._con.execute(
             """
             INSERT INTO

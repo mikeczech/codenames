@@ -45,7 +45,7 @@ class TestSQLiteGameState:
         create_default_game(db_con)
 
         # when
-        state.guess(1)
+        state.add_guess(1)
 
         # then
         result = state.load()
