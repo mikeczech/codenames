@@ -3,7 +3,7 @@ import pytest
 from codenames.game import (
     SQLiteGameManager,
     Hint,
-    SQLiteGameState,
+    SQLiteGamePersister,
     Color,
     Role,
     Condition,
@@ -14,10 +14,10 @@ from codenames.game import (
 from utils import create_default_game, add_players
 
 
-class TestSQLiteGameState:
+class TestSQLiteGamePersister:
     def test_load(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
@@ -41,7 +41,7 @@ class TestSQLiteGameState:
 
     def test_guess_word(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
@@ -54,7 +54,7 @@ class TestSQLiteGameState:
 
     def test_add_hints(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
@@ -72,7 +72,7 @@ class TestSQLiteGameState:
 
     def test_start_game(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
@@ -85,7 +85,7 @@ class TestSQLiteGameState:
 
     def test_start_not_ready_game(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when / then
@@ -94,7 +94,7 @@ class TestSQLiteGameState:
 
     def test_starting_a_game_twice_fails(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
@@ -105,7 +105,7 @@ class TestSQLiteGameState:
 
     def test_add_players(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
@@ -143,7 +143,7 @@ class TestSQLiteGameState:
 
     def test_adding_same_role_twice_fails(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when / then
@@ -153,7 +153,7 @@ class TestSQLiteGameState:
 
     def test_remove_players(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
@@ -167,7 +167,7 @@ class TestSQLiteGameState:
 
     def test_removing_not_existing_player_fails(self, db_con):
         # given
-        state = SQLiteGameState(42, db_con)
+        state = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 

@@ -58,7 +58,7 @@ class Hint:
     num: int
 
 
-class GameState:
+class GamePersister:
     @property
     def game_id(self) -> int:
         return -1
@@ -103,8 +103,8 @@ class GuessesExceededException(Exception):
 
 
 class Game:
-    def __init__(self, state: GameState):
-        self._state = state
+    def __init__(self, persister: GamePersister):
+        self._persister = persister
         self._session_id = None
         self._is_admin = None
         self._color = None
@@ -112,7 +112,7 @@ class Game:
 
     @property
     def id(self):
-        return self._state.game_id
+        return self._persister.game_id
 
     @property
     def color(self):
@@ -127,15 +127,15 @@ class Game:
         return self._role
 
     def get_state(self) -> Dict[str, Any]:
-        return self._state.load()
+        return self._persister.load()
 
     def start(self) -> None:
         if not self._is_admin:
             raise StateException("Only an admin can start a game")
-        self._state.start_game()
+        self._persister.start_game()
 
     def join(self, session_id: str, is_admin: bool, color: Color, role: Role) -> None:
-        self._state.add_player(session_id, is_admin, color, role)
+        self._persister.add_player(session_id, is_admin, color, role)
         self._session_id = session_id
         self._is_admin = is_admin
         self._color = color
@@ -144,7 +144,7 @@ class Game:
     def leave(self) -> None:
         if not self._session_id:
             raise StateException("You have not joined a game")
-        self._state.remove_player(self._session_id)
+        self._persister.remove_player(self._session_id)
         self._session_id = None
         self._is_admin = None
         self._color = None
@@ -157,7 +157,7 @@ class Game:
         pass
 
     def guess(self, word_id: int) -> None:
-        state = self._state.load()
+        state = self._persister.load()
         if not self.logged_in:
             raise StateException("You have not joined the game yet.")
 
@@ -179,14 +179,14 @@ class Game:
         if len(round_turns) >= latest_hint["num"] + 1:
             raise GuessesExceededException()
 
-        self._state.add_guess(word_id)
+        self._persister.add_guess(word_id)
 
 
 class GameAlreadyExistsException(Exception):
     pass
 
 
-class SQLiteGameState(GameState):
+class SQLiteGamePersister(GamePersister):
     def __init__(self, game_id: int, con: Connection):
         self._game_id = game_id
         self._con = con
@@ -443,7 +443,7 @@ class SQLiteGameManager:
         game = self._con.execute(
             "SELECT id from games WHERE name = ?", (name,)
         ).fetchone()
-        return Game(SQLiteGameState(game[0], self._con))
+        return Game(SQLiteGamePersister(game[0], self._con))
 
     def _get_random_words(self) -> List[Word]:
         words = self._con.execute(
