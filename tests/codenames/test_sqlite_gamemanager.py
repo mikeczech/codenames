@@ -1,7 +1,3 @@
-import os
-import csv
-import sqlite3
-
 import pytest
 
 from codenames.game import (
@@ -15,64 +11,14 @@ from codenames.game import (
     StateException,
 )
 
-
-@pytest.fixture
-def db_con():
-    con = sqlite3.connect(":memory:")
-    cursor = con.cursor()
-
-    this_dir, _ = os.path.split(__file__)
-    schema_path = os.path.join(this_dir, "..", "..", "codenames", "schema.sql")
-    words_path = os.path.join(this_dir, "..", "..", "codenames", "data", "words.csv")
-
-    with open(schema_path, "r") as f:
-        cursor.executescript(f.read())
-
-    with open(words_path, "r") as f:
-        rows = csv.DictReader(f)
-        to_db = [(r["id"], r["word"]) for r in rows]
-
-    cursor.executemany("INSERT INTO words (id, value) VALUES (?, ?);", to_db)
-
-    return con
+from utils import create_default_game, add_players
 
 
 class TestSQLiteGameState:
-    def _create_default_game(self, db_con):
-        """ Adds a simple game to the database. """
-        active_words = [(42, 1, Color.RED.value), (42, 2, Color.BLUE.value)]
-        turns = [(42, Condition.NOT_STARTED.value)]
-        db_con.executemany(
-            """
-            INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?)
-        """,
-            active_words,
-        )
-        db_con.executemany(
-            """
-            INSERT INTO turns (game_id, condition, created_at) VALUES (?, ?, strftime('%s', 'now'))
-        """,
-            turns,
-        )
-
-    def _add_players(self, db_con):
-        players = [
-            (42, "A23", Color.RED.value, Role.PLAYER.value, False),
-            (42, "A22", Color.BLUE.value, Role.SPYMASTER.value, True),
-            (42, "A21", Color.RED.value, Role.PLAYER.value, False),
-            (42, "A100", Color.BLUE.value, Role.SPYMASTER.value, False),
-        ]
-        db_con.executemany(
-            """
-            INSERT INTO players (game_id, session_id, color, role, is_admin) VALUES (?, ?, ?, ?, ?)
-        """,
-            players,
-        )
-
     def test_load(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when
         result = state.load()
@@ -96,7 +42,7 @@ class TestSQLiteGameState:
     def test_guess_word(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when
         state.guess(1)
@@ -109,7 +55,7 @@ class TestSQLiteGameState:
     def test_add_hints(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when
         state.add_hint("myfirsthint", 2, Color.RED)
@@ -127,8 +73,8 @@ class TestSQLiteGameState:
     def test_start_game(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
-        self._add_players(db_con)
+        create_default_game(db_con)
+        add_players(db_con)
 
         # when
         state.start_game()
@@ -140,7 +86,7 @@ class TestSQLiteGameState:
     def test_start_not_ready_game(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when / then
         with pytest.raises(StateException):
@@ -149,8 +95,8 @@ class TestSQLiteGameState:
     def test_starting_a_game_twice_fails(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
-        self._add_players(db_con)
+        create_default_game(db_con)
+        add_players(db_con)
 
         # when / then
         with pytest.raises(StateException):
@@ -160,7 +106,7 @@ class TestSQLiteGameState:
     def test_add_players(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when
         state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
@@ -198,7 +144,7 @@ class TestSQLiteGameState:
     def test_adding_same_role_twice_fails(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
+        create_default_game(db_con)
 
         # when / then
         with pytest.raises(StateException):
@@ -208,8 +154,8 @@ class TestSQLiteGameState:
     def test_remove_players(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
-        self._add_players(db_con)
+        create_default_game(db_con)
+        add_players(db_con)
 
         # when
         state.remove_player("A100")
@@ -222,8 +168,8 @@ class TestSQLiteGameState:
     def test_removing_not_existing_player_fails(self, db_con):
         # given
         state = SQLiteGameState(42, db_con)
-        self._create_default_game(db_con)
-        self._add_players(db_con)
+        create_default_game(db_con)
+        add_players(db_con)
 
         # when / then
         with pytest.raises(StateException):

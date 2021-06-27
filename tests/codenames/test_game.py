@@ -3,6 +3,8 @@ import pytest
 
 from codenames.game import Game, Color, GuessesExceededException, Role, StateException
 
+from utils import create_default_game, add_players
+
 
 class TestGame:
     def test_join(self):

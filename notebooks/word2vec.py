@@ -35,7 +35,7 @@ np.random.seed(0)
 
 # %%
 from codenames.game import read_wordlist_csv
-from codenames.game import Game
+from codenames.game import Client
 
 # %%
 # !ls ../
