@@ -102,7 +102,7 @@ class TestGame:
             "hints": [{"id": 23, "color": Color.RED, "word": "foo", "num": 2}],
             "turns": [
                 {"hint_id": 23} for _ in range(3)
-            ],  # we already have three guesses for hint 24
+            ],  # we already have three guesses for hint 23
             "metadata": {"condition": Condition.RED_PLAYER},
         }
         game = Game(state)
