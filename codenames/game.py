@@ -113,6 +113,10 @@ class GameState(ABC):
         self._is_admin = is_admin
 
     @property
+    def persister(self) -> GamePersister:
+        return self._persister
+
+    @property
     def session_id(self) -> str:
         return self._session_id
 
@@ -461,7 +465,7 @@ class SQLiteGamePersister(GamePersister):
             (self._game_id, session_id, color.value, role.value, is_admin),
         )
 
-    def _player_exists(self, session_id: str) -> bool:
+    def has_joined(self, session_id: str) -> bool:
         players = self._con.execute(
             """
             SELECT 1
@@ -473,7 +477,7 @@ class SQLiteGamePersister(GamePersister):
         return bool(players)
 
     def remove_player(self, session_id: str) -> None:
-        if not self._player_exists(session_id):
+        if not self.has_joined(session_id):
             raise StateException(f"Player with session id {session_id} does not exist.")
         self._con.execute(
             """

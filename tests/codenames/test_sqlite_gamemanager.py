@@ -98,6 +98,20 @@ class TestSQLiteGamePersister:
             persister.start_game()
             persister.start_game()
 
+    def test_has_joined(self, db_con):
+        # given
+        persister = SQLiteGamePersister(42, db_con)
+        create_default_game(db_con)
+        add_players(db_con)  # adds session id A23 but not A34
+
+        # when
+        has_joined = persister.has_joined("A23")
+        has_not_joined = persister.has_joined("A34")
+
+        # then
+        assert has_joined
+        assert not has_not_joined
+
     def test_add_players(self, db_con):
         # given
         persister = SQLiteGamePersister(42, db_con)
