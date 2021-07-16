@@ -26,8 +26,8 @@ def create_default_game(db_con):
 def add_players(db_con):
     players = [
         (42, "A23", Color.RED.value, Role.PLAYER.value, False),
-        (42, "A22", Color.BLUE.value, Role.SPYMASTER.value, True),
-        (42, "A21", Color.RED.value, Role.PLAYER.value, False),
+        (42, "A22", Color.RED.value, Role.SPYMASTER.value, True),
+        (42, "A21", Color.BLUE.value, Role.PLAYER.value, False),
         (42, "A100", Color.BLUE.value, Role.SPYMASTER.value, False),
     ]
     db_con.executemany(

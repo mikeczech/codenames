@@ -106,6 +106,16 @@ class GuessesExceededException(Exception):
         super().__init__()
 
 
+class AlreadyJoinedException(Exception):
+    def __init__(self):
+        super().__init__()
+
+
+class RoleOccupiedException(Exception):
+    def __init__(self):
+        super().__init__()
+
+
 class GameState(ABC):
     def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
         self._persister = persister
@@ -156,18 +166,14 @@ class NotStartedGameState(GameState):
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        self._persister.start_game()
+        self.persister.start_game()
 
     def join(self, color: Color, role: Role) -> None:
-        if self._persister.has_joined(self._session_id):
-            raise StateException(
-                f"Session ID {self._session_id} has already joined the game."
-            )
-        if self._persister.is_occupied(color, role):
-            raise StateException(
-                f"Color {color} and role {role} is not available anymore."
-            )
-        self._persister.add_player(self._session_id, self._is_admin, color, role)
+        if self.persister.is_occupied(color, role):
+            raise RoleOccupiedException()
+        if self.persister.has_joined(self._session_id):
+            raise AlreadyJoinedException()
+        self.persister.add_player(self._session_id, self._is_admin, color, role)
 
     def guess(self, word_id: int) -> None:
         raise StateException("The game has not started yet.")
