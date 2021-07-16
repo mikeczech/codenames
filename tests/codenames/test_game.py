@@ -67,3 +67,38 @@ class TestNotStartedGameState:
         # then
         assert pre_condition == Condition.NOT_STARTED
         assert post_condition == Condition.BLUE_SPY
+
+    def test_cannot_start_game_twice(self, db_con, not_started_state):
+        # given
+        add_players(db_con)
+
+        # when / then
+        with pytest.raises(StateException):
+            not_started_state.start_game()
+            not_started_state.start_game()
+
+
+class TestSpyTurnGameState:
+    @fixture
+    def persister(self, db_con):
+        persister = SQLiteGamePersister(42, db_con)
+        create_default_game(db_con)
+        return persister
+
+    @fixture
+    def blue_spy_turn_state(self, persister):
+        return SpyTurnGameState("mysessionid", False, persister, Color.BLUE)
+
+    def test_invalid_invocations(self, blue_spy_turn_state):
+        # when / then
+        with pytest.raises(StateException):
+            blue_spy_turn_state.guess(0)
+
+        with pytest.raises(StateException):
+            blue_spy_turn_state.start_game()
+
+        with pytest.raises(StateException):
+            blue_spy_turn_state.join(Color.RED, Role.PLAYER)
+
+        with pytest.raises(StateException):
+            blue_spy_turn_state.end_turn()

@@ -79,7 +79,7 @@ class GamePersister(ABC):
     def add_guess(self, word_id: int) -> None:
         raise NotImplementedError()
 
-    def add_hint(self, word: str, num: int) -> None:
+    def add_hint(self, word: str, num: int, color: Color) -> None:
         raise NotImplementedError()
 
     def is_occupied(self, color: Color, role: Role) -> bool:
@@ -159,6 +159,9 @@ class NotStartedGameState(GameState):
         super().__init__(session_id, is_admin, persister)
 
     def start_game(self) -> None:
+        if self.get_info()["metadata"]["condition"] != Condition.NOT_STARTED:
+            raise StateException("Game has already been started.")
+
         conditions = [
             self._persister.is_occupied(Color.RED, Role.PLAYER),
             self._persister.is_occupied(Color.BLUE, Role.PLAYER),
@@ -206,7 +209,21 @@ class SpyTurnGameState(GameState):
         raise StateException("A spy must provide a hint")
 
     def give_hint(self, word: str, num: int) -> None:
-        pass
+        game_info = self.get_info()
+        num_active_words = len(
+            [w for w in game_info["words"] if w.color == self._color and w.is_active]
+        )
+
+        if num > num_active_words:
+            raise StateException(f"There are only {num_active_words} left.")
+
+        self.persister.add_hint(word, num, self._color)
+        if self._color == Color.BLUE:
+            self.persister.add_turn(Condition.BLUE_PLAYER)
+        elif self._color == Color.RED:
+            self.persister.add_turn(Condition.RED_PLAYER)
+        else:
+            raise StateException("Cannot handle color '{self._color}'")
 
 
 class PlayerTurnGameState(GameState):
