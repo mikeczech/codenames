@@ -150,16 +150,6 @@ class TestSQLiteGamePersister:
             "is_admin": False,
         }
 
-    def test_adding_same_role_twice_fails(self, db_con):
-        # given
-        persister = SQLiteGamePersister(42, db_con)
-        create_default_game(db_con)
-
-        # when / then
-        with pytest.raises(StateException):
-            persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-            persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-
     def test_remove_players(self, db_con):
         # given
         persister = SQLiteGamePersister(42, db_con)
@@ -173,16 +163,6 @@ class TestSQLiteGamePersister:
         result = persister.load()["players"]
         assert len(result) == 3
         assert "A100" not in [r["session_id"] for r in result]
-
-    def test_removing_not_existing_player_fails(self, db_con):
-        # given
-        persister = SQLiteGamePersister(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)
-
-        # when / then
-        with pytest.raises(StateException):
-            persister.remove_player("A222")
 
 
 class TestSQLiteGameManager:

@@ -437,7 +437,7 @@ class SQLiteGamePersister(GamePersister):
             (self._game_id, Condition.BLUE_SPY.value),
         )
 
-    def _color_role_is_occupied(self, color: Color, role: Role) -> bool:
+    def is_occupied(self, color: Color, role: Role) -> bool:
         players = self._con.execute(
             """
             SELECT session_id
@@ -451,11 +451,6 @@ class SQLiteGamePersister(GamePersister):
     def add_player(
         self, session_id: str, is_admin: bool, color: Color, role: Role
     ) -> None:
-        if self._color_role_is_occupied(color, role):
-            raise StateException(
-                f"A player with color {color} and role {Role} already exists."
-            )
-
         self._con.execute(
             """
             INSERT INTO
@@ -477,8 +472,6 @@ class SQLiteGamePersister(GamePersister):
         return bool(players)
 
     def remove_player(self, session_id: str) -> None:
-        if not self.has_joined(session_id):
-            raise StateException(f"Player with session id {session_id} does not exist.")
         self._con.execute(
             """
             DELETE FROM players
