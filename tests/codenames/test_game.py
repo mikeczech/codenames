@@ -22,55 +22,46 @@ class TestNotStartedGameState:
         create_default_game(db_con)
         return persister
 
-    def test_invalid_invocations(self, persister):
-        # given
-        state = NotStartedGameState("mysessionid", False, persister)
+    @fixture
+    def not_started_state(self, persister):
+        return NotStartedGameState("mysessionid", False, persister)
 
+    def test_invalid_invocations(self, not_started_state):
         # when / then
         with pytest.raises(StateException):
-            state.guess(0)
+            not_started_state.guess(0)
 
         with pytest.raises(StateException):
-            state.give_hint("myhint", 2)
+            not_started_state.give_hint("myhint", 2)
 
         with pytest.raises(StateException):
-            state.end_turn()
+            not_started_state.end_turn()
 
-    def test_cannot_join_twice(self, persister):
-        # given
-        state = NotStartedGameState("mysessionid", False, persister)
-
+    def test_cannot_join_twice(self, not_started_state):
         # when / then
         with pytest.raises(AlreadyJoinedException):
-            state.join(Color.RED, Role.PLAYER)
-            state.join(Color.BLUE, Role.PLAYER)
+            not_started_state.join(Color.RED, Role.PLAYER)
+            not_started_state.join(Color.BLUE, Role.PLAYER)
 
-    def test_cannot_join_already_occupied_role(self, persister):
-        # given
-        state = NotStartedGameState("mysessionid", False, persister)
-
+    def test_cannot_join_already_occupied_role(self, not_started_state):
         # when / then
         with pytest.raises(RoleOccupiedException):
-            state.join(Color.RED, Role.PLAYER)
-            state.join(Color.RED, Role.PLAYER)
+            not_started_state.join(Color.RED, Role.PLAYER)
+            not_started_state.join(Color.RED, Role.PLAYER)
 
-    def test_start_game_fails_if_any_role_is_still_open(self, persister):
-        # given
-        state = NotStartedGameState("mysessionid", False, persister)
-
+    def test_start_game_fails_if_any_role_is_still_open(self, not_started_state):
         # when / then
         with pytest.raises(StateException):
-            state.start_game()
+            not_started_state.start_game()
 
-    def test_start_game_foo(self, db_con, persister):
+    def test_start_game_foo(self, db_con, not_started_state):
         # given
-        state = NotStartedGameState("mysessionid", False, persister)
         add_players(db_con)
 
         # when
-        pre_condition = state.get_info()["metadata"]["condition"]
-        state.start_game()
-        post_condition = state.get_info()["metadata"]["condition"]
+        pre_condition = not_started_state.get_info()["metadata"]["condition"]
+        not_started_state.start_game()
+        post_condition = not_started_state.get_info()["metadata"]["condition"]
 
         # then
         assert pre_condition == Condition.NOT_STARTED
