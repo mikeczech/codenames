@@ -10,6 +10,7 @@ from codenames.game import (
     Role,
     RoleOccupiedException,
     SQLiteGamePersister,
+    SpyTurnGameState,
     StateException,
 )
 from utils import create_default_game, add_players

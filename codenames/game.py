@@ -62,7 +62,7 @@ class GamePersister(ABC):
     def game_id(self) -> int:
         raise NotImplementedError()
 
-    def start_game(self) -> None:
+    def add_turn(self, condition: Condition) -> None:
         raise NotImplementedError()
 
     def add_player(
@@ -167,7 +167,7 @@ class NotStartedGameState(GameState):
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        self.persister.start_game()
+        self.persister.add_turn(Condition.BLUE_SPY)
 
     def join(self, color: Color, role: Role) -> None:
         if self.persister.is_occupied(color, role):
@@ -403,45 +403,14 @@ class SQLiteGamePersister(GamePersister):
             (self._game_id, word, num, color.value),
         )
 
-    def _has_started(self) -> bool:
-        current_turn = self._con.execute(
-            """
-            SELECT condition
-            FROM turns
-            WHERE game_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (self._game_id,),
-        ).fetchone()
-        return current_turn[0] != Condition.NOT_STARTED.value
-
-    def _is_ready(self) -> bool:
-        players = self._con.execute(
-            """
-            SELECT COUNT(*) AS count
-            FROM players
-            WHERE game_id = ?
-            LIMIT 1
-            """,
-            (self._game_id,),
-        ).fetchone()
-        return players[0] == NUM_PLAYERS
-
-    def start_game(self) -> None:
-        if self._has_started():
-            raise StateException(f"Game {self._game_id} has already started.")
-
-        if not self._is_ready():
-            raise StateException(f"Game {self._game_id} is not ready.")
-
+    def add_turn(self, condition: Condition) -> None:
         self._con.execute(
             """
             INSERT INTO
                 turns (game_id, condition, created_at)
             VALUES (?, ?, strftime('%s','now'))
         """,
-            (self._game_id, Condition.BLUE_SPY.value),
+            (self._game_id, condition.value),
         )
 
     def is_occupied(self, color: Color, role: Role) -> bool:
