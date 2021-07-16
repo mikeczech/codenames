@@ -68,7 +68,7 @@ class GamePersister(ABC):
     def game_id(self) -> int:
         raise NotImplementedError()
 
-    def add_turn(self, condition: Condition) -> None:
+    def push_condition(self, condition: Condition) -> None:
         raise NotImplementedError()
 
     def add_player(
@@ -174,7 +174,7 @@ class NotStartedGameState(GameState):
         if not all(conditions):
             raise StateException("The game is not ready.")
         with self.persister as c:
-            c.add_turn(Condition.BLUE_SPY)
+            c.push_condition(Condition.BLUE_SPY)
 
     def join(self, color: Color, role: Role) -> None:
         if self.persister.is_occupied(color, role):
@@ -217,9 +217,9 @@ class SpyTurnGameState(GameState):
         with self.persister as c:
             c.add_hint(word, num, self._color)
             if self._color == Color.BLUE:
-                c.add_turn(Condition.BLUE_PLAYER)
+                c.push_condition(Condition.BLUE_PLAYER)
             elif self._color == Color.RED:
-                c.add_turn(Condition.RED_PLAYER)
+                c.push_condition(Condition.RED_PLAYER)
             else:
                 raise StateException("Cannot handle color '{self._color}'")
 
@@ -425,7 +425,7 @@ class SQLiteGamePersister(GamePersister):
             (self._game_id, word, num, color.value),
         )
 
-    def add_turn(self, condition: Condition) -> None:
+    def push_condition(self, condition: Condition) -> None:
         self._con.execute(
             """
             INSERT INTO
