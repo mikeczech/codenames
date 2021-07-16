@@ -250,27 +250,10 @@ class PlayerTurnGameState(GameState):
         raise StateException("A player cannot give hints")
 
     def guess(self, word_id: int) -> None:
-        # TODO verify word id
-        self._persister.add_guess(word_id)
-        if self._count_remaining_guesses() == 0:
-            self.end_turn()
-
-        if self._color == Color.BLUE:
-            return PlayerTurnGameState(
-                self.session_id, self.is_admin, self.persister, Color.BLUE
-            )
-        return PlayerTurnGameState(
-            self.session_id, self.is_admin, self.persister, Color.RED
-        )
+        pass
 
     def end_turn(self) -> None:
-        if self._color == Color.BLUE:
-            return SpyTurnGameState(
-                self.session_id, self.is_admin, self.persister, Color.RED
-            )
-        return SpyTurnGameState(
-            self.session_id, self.is_admin, self.persister, Color.BLUE
-        )
+        pass
 
 
 class FinishedGameState(GameState):
