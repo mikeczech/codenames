@@ -52,8 +52,9 @@ class Word:
     color: Color
     selected_at: Optional[datetime]
 
+    @property
     def is_active(self):
-        return bool(self.selected_at)
+        return not bool(self.selected_at)
 
 
 class GamePersister(ABC):
