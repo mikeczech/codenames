@@ -58,6 +58,12 @@ class Word:
 
 
 class GamePersister(ABC):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
     @property
     def game_id(self) -> int:
         raise NotImplementedError()
@@ -86,9 +92,6 @@ class GamePersister(ABC):
         raise NotImplementedError()
 
     def has_joined(self, session_id: str) -> bool:
-        raise NotImplementedError()
-
-    def commit(self) -> None:
         raise NotImplementedError()
 
 
@@ -170,14 +173,16 @@ class NotStartedGameState(GameState):
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        self.persister.add_turn(Condition.BLUE_SPY)
+        with self.persister as c:
+            c.add_turn(Condition.BLUE_SPY)
 
     def join(self, color: Color, role: Role) -> None:
         if self.persister.is_occupied(color, role):
             raise RoleOccupiedException()
         if self.persister.has_joined(self._session_id):
             raise AlreadyJoinedException()
-        self.persister.add_player(self._session_id, self._is_admin, color, role)
+        with self.persister as c:
+            c.add_player(self._session_id, self._is_admin, color, role)
 
     def guess(self, word_id: int) -> None:
         raise StateException("The game has not started yet.")
@@ -209,21 +214,14 @@ class SpyTurnGameState(GameState):
         raise StateException("A spy must provide a hint")
 
     def give_hint(self, word: str, num: int) -> None:
-        game_info = self.get_info()
-        num_active_words = len(
-            [w for w in game_info["words"] if w.color == self._color and w.is_active]
-        )
-
-        if num > num_active_words:
-            raise StateException(f"There are only {num_active_words} left.")
-
-        self.persister.add_hint(word, num, self._color)
-        if self._color == Color.BLUE:
-            self.persister.add_turn(Condition.BLUE_PLAYER)
-        elif self._color == Color.RED:
-            self.persister.add_turn(Condition.RED_PLAYER)
-        else:
-            raise StateException("Cannot handle color '{self._color}'")
+        with self.persister as c:
+            c.add_hint(word, num, self._color)
+            if self._color == Color.BLUE:
+                c.add_turn(Condition.BLUE_PLAYER)
+            elif self._color == Color.RED:
+                c.add_turn(Condition.RED_PLAYER)
+            else:
+                raise StateException("Cannot handle color '{self._color}'")
 
 
 class PlayerTurnGameState(GameState):
@@ -329,6 +327,13 @@ class SQLiteGamePersister(GamePersister):
     @property
     def game_id(self) -> int:
         return self._game_id
+
+    def __enter__(self):
+        self._con.rollback()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._con.commit()
 
     def load(self) -> Dict[str, Any]:
         active_words = self._con.execute(
@@ -472,9 +477,6 @@ class SQLiteGamePersister(GamePersister):
         """,
             (self._game_id, session_id),
         )
-
-    def commit(self) -> None:
-        self._con.commit()
 
 
 class SQLiteGameManager:
