@@ -2,8 +2,8 @@ import pytest
 
 from codenames.game import (
     SQLiteGameManager,
-    Hint,
     SQLiteGamePersister,
+    Word,
     Color,
     Role,
     Condition,
@@ -17,22 +17,17 @@ from utils import create_default_game, add_players
 class TestSQLiteGamePersister:
     def test_load(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
-        result = state.load()
+        result = persister.load()
 
         # then
         assert result == {
             "words": [
-                {
-                    "id": 1,
-                    "value": "Hollywood",
-                    "color": Color.RED,
-                    "selected_at": None,
-                },
-                {"id": 2, "value": "Well", "color": Color.BLUE, "selected_at": None},
+                Word(id=1, value="Hollywood", color=Color.RED, selected_at=None),
+                Word(id=2, value="Well", color=Color.BLUE, selected_at=None),
             ],
             "hints": [],
             "players": [],
@@ -41,28 +36,28 @@ class TestSQLiteGamePersister:
 
     def test_guess_word(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
-        state.add_guess(1)
+        persister.add_guess(1)
 
         # then
-        result = state.load()
-        assert result["words"][0]["selected_at"]
-        assert not result["words"][1]["selected_at"]
+        result = persister.load()
+        assert result["words"][0].selected_at
+        assert not result["words"][1].selected_at
 
     def test_add_hints(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
-        state.add_hint("myfirsthint", 2, Color.RED)
-        state.add_hint("mysecondhint", 3, Color.BLUE)
+        persister.add_hint("myfirsthint", 2, Color.RED)
+        persister.add_hint("mysecondhint", 3, Color.BLUE)
 
         # then
-        result = state.load()["hints"]
+        result = persister.load()["hints"]
         assert result[0]["word"] == "myfirsthint"
         assert result[0]["num"] == 2
         assert result[0]["color"] == Color.RED
@@ -72,50 +67,50 @@ class TestSQLiteGamePersister:
 
     def test_start_game(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when
-        state.start_game()
+        persister.start_game()
 
         # then
-        metadata = state.load()["metadata"]
+        metadata = persister.load()["metadata"]
         assert metadata["condition"] == Condition.BLUE_SPY
 
     def test_start_not_ready_game(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when / then
         with pytest.raises(StateException):
-            state.start_game()
+            persister.start_game()
 
     def test_starting_a_game_twice_fails(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when / then
         with pytest.raises(StateException):
-            state.start_game()
-            state.start_game()
+            persister.start_game()
+            persister.start_game()
 
     def test_add_players(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when
-        state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-        state.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
-        state.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
-        state.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
+        persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+        persister.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
+        persister.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
+        persister.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
 
         # then
-        result = state.load()["players"]
+        result = persister.load()["players"]
         assert result[0] == {
             "session_id": "ABDB23",
             "color": Color.RED,
@@ -143,37 +138,37 @@ class TestSQLiteGamePersister:
 
     def test_adding_same_role_twice_fails(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
 
         # when / then
         with pytest.raises(StateException):
-            state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-            state.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+            persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+            persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
 
     def test_remove_players(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when
-        state.remove_player("A100")
+        persister.remove_player("A100")
 
         # then
-        result = state.load()["players"]
+        result = persister.load()["players"]
         assert len(result) == 3
         assert "A100" not in [r["session_id"] for r in result]
 
     def test_removing_not_existing_player_fails(self, db_con):
         # given
-        state = SQLiteGamePersister(42, db_con)
+        persister = SQLiteGamePersister(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when / then
         with pytest.raises(StateException):
-            state.remove_player("A222")
+            persister.remove_player("A222")
 
 
 class TestSQLiteGameManager:
@@ -182,7 +177,7 @@ class TestSQLiteGameManager:
         manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
         # when
-        game = manager.create_random("my_game")
+        game = manager.create_random("my_game", "mysessionid")
 
         # then
         assert game.id == 1
@@ -192,11 +187,11 @@ class TestSQLiteGameManager:
         manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
         # when
-        state = manager.create_random("my_game").get_state()
+        info = manager.create_random("my_game", "mysessionid").load_state().get_info()
 
         # then
-        assert len(state["words"]) == 7
-        assert state["metadata"]["condition"] == Condition.NOT_STARTED
+        assert len(info["words"]) == 7
+        assert info["metadata"]["condition"] == Condition.NOT_STARTED
 
     def test_initially_there_is_no_game(self, db_con):
         # given
@@ -211,7 +206,7 @@ class TestSQLiteGameManager:
     def test_a_created_game_exists(self, db_con):
         # given
         manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
-        manager.create_random("my_game")
+        manager.create_random("my_game", "mysessionid")
 
         # when
         result = manager.exists("my_game")
@@ -224,8 +219,8 @@ class TestSQLiteGameManager:
         manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
 
         # when
-        manager.create_random("my_game")
+        manager.create_random("my_game", "mysessionid")
 
         # then
         with pytest.raises(GameAlreadyExistsException):
-            manager.create_random("my_game")
+            manager.create_random("my_game", "mysessionid")
