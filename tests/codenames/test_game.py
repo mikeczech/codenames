@@ -186,3 +186,21 @@ class TestPlayerTurnGameState:
         # then
         assert pre_condition
         assert not post_condition
+
+    def test_exceeding_number_of_guesses_ends_turn(self, blue_player_turn_state):
+        pass
+
+    def test_guessing_opposite_color_ends_turn(self, blue_player_turn_state):
+        pass
+
+    def test_guessing_opposite_color_loses_game(self, blue_player_turn_state):
+        pass
+
+    def test_guessing_neutral_color_ends_turn(self, blue_player_turn_state):
+        pass
+
+    def test_guessing_final_word_wins_game(self, blue_player_turn_state):
+        pass
+
+    def test_guessing_assassin_loses_game(self, blue_player_turn_state):
+        pass
