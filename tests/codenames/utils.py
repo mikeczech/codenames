@@ -21,6 +21,7 @@ def create_default_game(db_con):
     """,
         turns,
     )
+    db_con.commit()
 
 
 def add_players(db_con):
@@ -36,3 +37,4 @@ def add_players(db_con):
     """,
         players,
     )
+    db_con.commit()

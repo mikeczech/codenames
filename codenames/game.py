@@ -250,7 +250,17 @@ class PlayerTurnGameState(GameState):
         raise StateException("A player cannot give hints")
 
     def guess(self, word_id: int) -> None:
-        pass
+        game_info = self.get_info()
+        word_options = {
+            w.id: w for w in game_info["words"] if w.is_active
+        }  # id -> active word
+        if word_id not in word_options:
+            raise StateException(
+                f"Word with id {id} is either not active or does not exist."
+            )
+
+        with self.persister as c:
+            c.add_guess(word_id)
 
     def end_turn(self) -> None:
         pass

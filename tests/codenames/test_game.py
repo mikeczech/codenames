@@ -7,6 +7,7 @@ from codenames.game import (
     Color,
     Condition,
     NotStartedGameState,
+    PlayerTurnGameState,
     Role,
     RoleOccupiedException,
     SQLiteGamePersister,
@@ -124,7 +125,8 @@ class TestSpyTurnGameState:
     ):
         # given
         spy_turn_state = request.getfixturevalue(spy_turn_state)
-        spy_turn_state.persister.push_condition(initial_condition)
+        with spy_turn_state.persister as c:
+            c.push_condition(initial_condition)
 
         # when
         pre_condition = spy_turn_state.get_info()["metadata"]["condition"]
@@ -140,3 +142,47 @@ class TestSpyTurnGameState:
         assert latest_hint["word"] == "myhint"
         assert latest_hint["num"] == 2
         assert latest_hint["color"] == color
+
+
+class TestPlayerTurnGameState:
+    @fixture
+    def persister(self, db_con):
+        persister = SQLiteGamePersister(42, db_con)
+        create_default_game(db_con)
+        return persister
+
+    @fixture
+    def blue_player_turn_state(self, persister):
+        with persister as c:
+            c.push_condition(Condition.BLUE_PLAYER)
+        return PlayerTurnGameState("mysessionid", False, persister, Color.BLUE)
+
+    def test_invalid_invocations(self, blue_player_turn_state):
+        # when / then
+        with pytest.raises(StateException):
+            blue_player_turn_state.give_hint("myword", 2)
+
+        with pytest.raises(StateException):
+            blue_player_turn_state.start_game()
+
+        with pytest.raises(StateException):
+            blue_player_turn_state.join(Color.RED, Role.PLAYER)
+
+    def test_cannot_guess_already_selected_word(self, blue_player_turn_state):
+        # when / then
+        with pytest.raises(StateException):
+            blue_player_turn_state.guess(42)  # word id 42 does not exist
+
+    def test_guess_correct_word(self, blue_player_turn_state):
+        # when
+        game_info = blue_player_turn_state.get_info()
+        pre_condition = [w for w in game_info["words"] if w.id == 2][0].is_active
+
+        blue_player_turn_state.guess(2)  # guessed word is blue
+
+        game_info = blue_player_turn_state.get_info()
+        post_condition = [w for w in game_info["words"] if w.id == 2][0].is_active
+
+        # then
+        assert pre_condition
+        assert not post_condition
