@@ -7,7 +7,14 @@ from codenames.game import (
 
 def create_default_game(db_con):
     """ Adds a simple game to the database. """
-    active_words = [(42, 1, Color.RED.value), (42, 2, Color.BLUE.value)]
+    active_words = [
+        (42, 1, Color.RED.value),
+        (42, 2, Color.BLUE.value),
+        (42, 3, Color.RED.value),
+        (42, 4, Color.BLUE.value),
+        (42, 5, Color.NEUTRAL.value),
+        (42, 6, Color.ASSASSIN.value),
+    ]
     turns = [(42, Condition.NOT_STARTED.value)]
     db_con.executemany(
         """

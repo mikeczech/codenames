@@ -191,16 +191,57 @@ class TestPlayerTurnGameState:
         pass
 
     def test_guessing_opposite_color_ends_turn(self, blue_player_turn_state):
-        pass
+        # when
+        blue_player_turn_state.guess(1)
+        game_info = blue_player_turn_state.get_info()
 
-    def test_guessing_opposite_color_loses_game(self, blue_player_turn_state):
-        pass
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_SPY
+
+    def test_guessing_opposite_color_loses_game(
+        self, persister, blue_player_turn_state
+    ):
+        # given
+        persister.add_guess(1)  # only a single red word is left
+
+        # when
+        blue_player_turn_state.guess(3)
+        game_info = blue_player_turn_state.get_info()
+
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_WINS
 
     def test_guessing_neutral_color_ends_turn(self, blue_player_turn_state):
-        pass
+        # when
+        blue_player_turn_state.guess(5)
+        game_info = blue_player_turn_state.get_info()
 
-    def test_guessing_final_word_wins_game(self, blue_player_turn_state):
-        pass
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_SPY
+
+    def test_guessing_final_word_wins_game(self, persister, blue_player_turn_state):
+        # given
+        persister.add_guess(2)  # only a single red word is left
+
+        # when
+        blue_player_turn_state.guess(4)
+        game_info = blue_player_turn_state.get_info()
+
+        # then
+        assert game_info["metadata"]["condition"] == Condition.BLUE_WINS
 
     def test_guessing_assassin_loses_game(self, blue_player_turn_state):
-        pass
+        # when
+        blue_player_turn_state.guess(6)
+        game_info = blue_player_turn_state.get_info()
+
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_WINS
+
+    def test_end_turn(self, blue_player_turn_state):
+        # when
+        blue_player_turn_state.end_turn()
+        game_info = blue_player_turn_state.get_info()
+
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_SPY

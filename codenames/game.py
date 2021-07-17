@@ -39,7 +39,8 @@ class Condition(Enum):
     RED_PLAYER = 3
     BLUE_SPY = 4
     BLUE_PLAYER = 5
-    FINISHED = 6
+    RED_WINS = 6
+    BLUE_WINS = 7
 
 
 NUM_PLAYERS = 4
@@ -250,20 +251,60 @@ class PlayerTurnGameState(GameState):
         raise StateException("A player cannot give hints")
 
     def guess(self, word_id: int) -> None:
+        word_options = {}
+        num_blue_words_left = 0
+        num_red_words_left = 0
+
         game_info = self.get_info()
-        word_options = {
-            w.id: w for w in game_info["words"] if w.is_active
-        }  # id -> active word
+        for w in game_info["words"]:
+            if w.is_active:
+                word_options[w.id] = w
+                if w.color == Color.RED:
+                    num_red_words_left += 1
+                elif w.color == Color.BLUE:
+                    num_blue_words_left += 1
+
         if word_id not in word_options:
             raise StateException(
                 f"Word with id {id} is either not active or does not exist."
             )
 
+        guess_color = word_options[word_id].color
         with self.persister as c:
             c.add_guess(word_id)
+            if guess_color == Color.NEUTRAL:
+                self.end_turn()
+            elif self._color == Color.BLUE and guess_color == Color.RED:
+                if num_red_words_left == 1:
+                    c.push_condition(Condition.RED_WINS)
+                else:
+                    self.end_turn()
+            elif self._color == Color.RED and guess_color == Color.BLUE:
+                if num_blue_words_left == 1:
+                    c.push_condition(Condition.BLUE_WINS)
+                else:
+                    self.end_turn()
+            elif self._color == Color.BLUE and guess_color == Color.BLUE:
+                if num_blue_words_left == 1:
+                    c.push_condition(Condition.BLUE_WINS)
+            elif self._color == Color.RED and guess_color == Color.RED:
+                if num_red_words_left == 1:
+                    c.push_condition(Condition.RED_WINS)
+            elif self._color == Color.BLUE and guess_color == Color.ASSASSIN:
+                c.push_condition(Condition.RED_WINS)
+            elif self._color == Color.RED and guess_color == Color.ASSASSIN:
+                c.push_condition(Condition.BLUE_WINS)
+            else:
+                raise StateException(f"Cannot handle guess of word id {word_id}.")
 
     def end_turn(self) -> None:
-        pass
+        with self.persister as c:
+            if self._color == Color.BLUE:
+                c.push_condition(Condition.RED_SPY)
+            elif self._color == Color.RED:
+                c.push_condition(Condition.BLUE_SPY)
+            else:
+                raise StateException(f"Cannot handle color {self._color}.")
 
 
 class FinishedGameState(GameState):

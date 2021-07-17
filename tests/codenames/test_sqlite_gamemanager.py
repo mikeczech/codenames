@@ -28,6 +28,10 @@ class TestSQLiteGamePersister:
             "words": [
                 Word(id=1, value="Hollywood", color=Color.RED, selected_at=None),
                 Word(id=2, value="Well", color=Color.BLUE, selected_at=None),
+                Word(id=3, value="Foot", color=Color.RED, selected_at=None),
+                Word(id=4, value="New York", color=Color.BLUE, selected_at=None),
+                Word(id=5, value="Spring", color=Color.NEUTRAL, selected_at=None),
+                Word(id=6, value="Court", color=Color.ASSASSIN, selected_at=None),
             ],
             "hints": [],
             "players": [],
