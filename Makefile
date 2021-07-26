@@ -9,7 +9,7 @@ format:
 	poetry run black tests/
 
 run-tests:
-	poetry run pytest tests/codenames
+	poetry run pytest tests/codenames $(pytest_args)
 
 run-backend:
 	FLASK_APP=codenames \
