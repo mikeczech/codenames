@@ -272,7 +272,7 @@ class PlayerTurnGameState(GameState):
             )
 
         num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)
-        guess_color = word_info[word_id].color
+        guessed_color = word_info[word_id].color
         with self.persister as c:
             num_remaining_guesses = self._count_remaining_guesses(game_info)
             if num_remaining_guesses == 0:
@@ -281,31 +281,31 @@ class PlayerTurnGameState(GameState):
                 c.add_guess(word_id)
 
                 # determine next game condition
-                if guess_color == Color.NEUTRAL:
+                if guessed_color == Color.NEUTRAL:
                     self.end_turn(c)
-                elif self._color == Color.BLUE and guess_color == Color.RED:
+                elif self._color == Color.BLUE and guessed_color == Color.RED:
                     if num_red_words_left == 1:
                         c.push_condition(Condition.RED_WINS)
                     else:
                         self.end_turn(c)
-                elif self._color == Color.RED and guess_color == Color.BLUE:
+                elif self._color == Color.RED and guessed_color == Color.BLUE:
                     if num_blue_words_left == 1:
                         c.push_condition(Condition.BLUE_WINS)
                     else:
                         self.end_turn(c)
-                elif self._color == Color.BLUE and guess_color == Color.BLUE:
+                elif self._color == Color.BLUE and guessed_color == Color.BLUE:
                     if num_blue_words_left == 1:
                         c.push_condition(Condition.BLUE_WINS)
                     else:
                         c.push_condition(Condition.BLUE_PLAYER)
-                elif self._color == Color.RED and guess_color == Color.RED:
+                elif self._color == Color.RED and guessed_color == Color.RED:
                     if num_red_words_left == 1:
                         c.push_condition(Condition.RED_WINS)
                     else:
                         c.push_condition(Condition.RED_PLAYER)
-                elif self._color == Color.BLUE and guess_color == Color.ASSASSIN:
+                elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
                     c.push_condition(Condition.RED_WINS)
-                elif self._color == Color.RED and guess_color == Color.ASSASSIN:
+                elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
                     c.push_condition(Condition.BLUE_WINS)
                 else:
                     raise StateException(f"Cannot handle guess of word id {word_id}.")
