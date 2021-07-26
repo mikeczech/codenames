@@ -240,6 +240,24 @@ class PlayerTurnGameState(GameState):
                 round_turns.append(t)
         return (latest_hint["num"] + 1) - len(round_turns)
 
+    def _count_num_words_left(self, game_info) -> Tuple[int, int]:
+        num_blue_words_left = 0
+        num_red_words_left = 0
+        for w in game_info["words"]:
+            if w.is_active:
+                if w.color == Color.RED:
+                    num_red_words_left += 1
+                elif w.color == Color.BLUE:
+                    num_blue_words_left += 1
+        return num_blue_words_left, num_red_words_left
+
+    def _get_word_options(self, game_info) -> Dict[int, Word]:
+        word_options = {}
+        for w in game_info["words"]:
+            if w.is_active:
+                word_options[w.id] = w
+        return word_options
+
     def start_game(self) -> None:
         raise StateException("The game has already started")
 
@@ -250,10 +268,6 @@ class PlayerTurnGameState(GameState):
         raise StateException("A player cannot give hints")
 
     def guess(self, word_id: int) -> None:
-        word_options = {}
-        num_blue_words_left = 0
-        num_red_words_left = 0
-
         game_info = self.get_info()
 
         remaining_guess = self._count_remaining_guesses(game_info)
@@ -261,19 +275,13 @@ class PlayerTurnGameState(GameState):
             self.end_turn()
             return
 
-        for w in game_info["words"]:
-            if w.is_active:
-                word_options[w.id] = w
-                if w.color == Color.RED:
-                    num_red_words_left += 1
-                elif w.color == Color.BLUE:
-                    num_blue_words_left += 1
-
+        word_options = self._get_word_options(game_info)
         if word_id not in word_options:
             raise StateException(
                 f"Word with id {id} is either not active or does not exist."
             )
 
+        num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)
         guess_color = word_options[word_id].color
         with self.persister as c:
             c.add_guess(word_id)
@@ -442,17 +450,11 @@ class SQLiteGamePersister(GamePersister):
                     "id": h[0],
                     "word": h[1],
                     "num": h[2],
-                    "color": Color(h[3]) if h[3] else None
+                    "color": Color(h[3]) if h[3] else None,
                 }
                 for h in hints
             ],
-            "turns": [
-                {
-                    "hint_id": t[0],
-                    "condition": Condition(t[1])
-                }
-                for t in turns
-            ],
+            "turns": [{"hint_id": t[0], "condition": Condition(t[1])} for t in turns],
             "players": [
                 {
                     "session_id": p[0],
@@ -590,13 +592,14 @@ class SQLiteGameManager:
                 """,
             (None, game.id, Condition.NOT_STARTED.value),
         )
+        # add dummy hint for code simplification
         self._con.execute(
             """
             INSERT INTO
                 hints (game_id, hint, num, color, created_at)
             VALUES (?, ?, ?, ?, strftime('%s', 'now'))
             """,
-            (game.id, None, None, None)
+            (game.id, None, None, None),
         )
 
         self._con.commit()
