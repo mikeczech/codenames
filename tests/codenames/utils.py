@@ -14,19 +14,34 @@ def create_default_game(db_con):
         (42, 4, Color.BLUE.value),
         (42, 5, Color.NEUTRAL.value),
         (42, 6, Color.ASSASSIN.value),
+        (42, 7, Color.BLUE.value),
+        (42, 8, Color.RED.value),
     ]
-    turns = [(42, Condition.NOT_STARTED.value)]
+    turns = [(42, None, Condition.NOT_STARTED.value)]
+    hints = [(42, None, None, None)]
     db_con.executemany(
         """
-        INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?)
+        INSERT INTO 
+            active_words (game_id, word_id, color)
+        VALUES (?, ?, ?)
     """,
         active_words,
     )
     db_con.executemany(
         """
-        INSERT INTO turns (game_id, condition, created_at) VALUES (?, ?, strftime('%s', 'now'))
+        INSERT INTO
+            turns (game_id, hint_id, condition, created_at)
+        VALUES (?, ?, ?, strftime('%s', 'now'))
     """,
         turns,
+    )
+    db_con.executemany(
+        """
+        INSERT INTO
+            hints (game_id, hint, num, color, created_at)
+        VALUES (?, ?, ?, ?, strftime('%s', 'now'))
+    """,
+        hints,
     )
     db_con.commit()
 

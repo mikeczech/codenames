@@ -154,6 +154,7 @@ class TestPlayerTurnGameState:
     @fixture
     def blue_player_turn_state(self, persister):
         with persister as c:
+            c.add_hint("myhint", 1, Color.BLUE)
             c.push_condition(Condition.BLUE_PLAYER)
         return PlayerTurnGameState("mysessionid", False, persister, Color.BLUE)
 
@@ -168,7 +169,9 @@ class TestPlayerTurnGameState:
         with pytest.raises(StateException):
             blue_player_turn_state.join(Color.RED, Role.PLAYER)
 
-    def test_cannot_guess_already_selected_word(self, blue_player_turn_state):
+    def test_cannot_guess_already_selected_word(
+        self, persister, blue_player_turn_state
+    ):
         # when / then
         with pytest.raises(StateException):
             blue_player_turn_state.guess(42)  # word id 42 does not exist
@@ -188,7 +191,13 @@ class TestPlayerTurnGameState:
         assert not post_condition
 
     def test_exceeding_number_of_guesses_ends_turn(self, blue_player_turn_state):
-        pass
+        # when
+        blue_player_turn_state.guess(2)
+        blue_player_turn_state.guess(7)
+        game_info = blue_player_turn_state.get_info()
+
+        # then
+        assert game_info["metadata"]["condition"] == Condition.RED_SPY
 
     def test_guessing_opposite_color_ends_turn(self, blue_player_turn_state):
         # when
@@ -202,7 +211,8 @@ class TestPlayerTurnGameState:
         self, persister, blue_player_turn_state
     ):
         # given
-        persister.add_guess(1)  # only a single red word is left
+        persister.add_guess(1)
+        persister.add_guess(8)  # only a single red word is left
 
         # when
         blue_player_turn_state.guess(3)
@@ -221,7 +231,9 @@ class TestPlayerTurnGameState:
 
     def test_guessing_final_word_wins_game(self, persister, blue_player_turn_state):
         # given
-        persister.add_guess(2)  # only a single red word is left
+        persister.add_hint("myhint", 1, Color.BLUE)
+        persister.add_guess(2)
+        persister.add_guess(7)  # only a single blue word is left
 
         # when
         blue_player_turn_state.guess(4)
@@ -242,6 +254,3 @@ class TestPlayerTurnGameState:
         # when
         blue_player_turn_state.end_turn()
         game_info = blue_player_turn_state.get_info()
-
-        # then
-        assert game_info["metadata"]["condition"] == Condition.RED_SPY

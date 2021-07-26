@@ -232,13 +232,12 @@ class PlayerTurnGameState(GameState):
         super().__init__(session_id, is_admin, persister)
         self._color = color
 
-    def _count_remaining_guesses(self) -> int:
-        game_info = self.persister.load()
+    def _count_remaining_guesses(self, game_info) -> int:
         latest_hint = game_info["hints"][-1]
         round_turns = []
         for t in game_info["turns"]:
             if t["hint_id"] == latest_hint["id"]:
-                t.append(round_turns)
+                round_turns.append(t)
         return (latest_hint["num"] + 1) - len(round_turns)
 
     def start_game(self) -> None:
@@ -256,6 +255,12 @@ class PlayerTurnGameState(GameState):
         num_red_words_left = 0
 
         game_info = self.get_info()
+
+        remaining_guess = self._count_remaining_guesses(game_info)
+        if remaining_guess == 0:
+            self.end_turn()
+            return
+
         for w in game_info["words"]:
             if w.is_active:
                 word_options[w.id] = w
@@ -287,9 +292,13 @@ class PlayerTurnGameState(GameState):
             elif self._color == Color.BLUE and guess_color == Color.BLUE:
                 if num_blue_words_left == 1:
                     c.push_condition(Condition.BLUE_WINS)
+                else:
+                    c.push_condition(Condition.BLUE_PLAYER)
             elif self._color == Color.RED and guess_color == Color.RED:
                 if num_red_words_left == 1:
                     c.push_condition(Condition.RED_WINS)
+                else:
+                    c.push_condition(Condition.RED_PLAYER)
             elif self._color == Color.BLUE and guess_color == Color.ASSASSIN:
                 c.push_condition(Condition.RED_WINS)
             elif self._color == Color.RED and guess_color == Color.ASSASSIN:
@@ -385,7 +394,7 @@ class SQLiteGamePersister(GamePersister):
 
         hints = self._con.execute(
             """
-            SELECT hint, num, color, created_at
+            SELECT id, hint, num, color, created_at
             FROM hints
             WHERE game_id = ?
             ORDER BY id ASC
@@ -398,6 +407,16 @@ class SQLiteGamePersister(GamePersister):
             SELECT session_id, color, role, is_admin
             FROM players
             WHERE game_id = ?
+            """,
+            (self._game_id,),
+        ).fetchall()
+
+        turns = self._con.execute(
+            """
+            SELECT hint_id, condition
+            FROM turns
+            WHERE game_id = ?
+            ORDER BY id DESC
             """,
             (self._game_id,),
         ).fetchall()
@@ -420,12 +439,19 @@ class SQLiteGamePersister(GamePersister):
             ],
             "hints": [
                 {
-                    "word": h[0],
-                    "num": h[1],
-                    "color": Color(h[2]),
-                    "created_at": h[3],
+                    "id": h[0],
+                    "word": h[1],
+                    "num": h[2],
+                    "color": Color(h[3]) if h[3] else None
                 }
                 for h in hints
+            ],
+            "turns": [
+                {
+                    "hint_id": t[0],
+                    "condition": Condition(t[1])
+                }
+                for t in turns
             ],
             "players": [
                 {
@@ -463,10 +489,18 @@ class SQLiteGamePersister(GamePersister):
         self._con.execute(
             """
             INSERT INTO
-                turns (game_id, condition, created_at)
-            VALUES (?, ?, strftime('%s','now'))
+                turns (game_id, hint_id, condition, created_at)
+            SELECT
+                game_id,
+                id AS hint_id,
+                ? AS condition,
+                strftime('%s','now') AS created_at
+            FROM hints
+            WHERE game_id = ?
+            ORDER BY id DESC
+            LIMIT 1
         """,
-            (self._game_id, condition.value),
+            (condition.value, self._game_id),
         )
 
     def is_occupied(self, color: Color, role: Role) -> bool:
@@ -551,10 +585,18 @@ class SQLiteGameManager:
         self._con.execute(
             """
             INSERT INTO
-                turns (game_id, condition, created_at)
-            VALUES (?, ?, strftime('%s','now'))
+                turns (hint_id, game_id, condition, created_at)
+            VALUES (?, ?, ?, strftime('%s','now'))
                 """,
-            (game.id, Condition.NOT_STARTED.value),
+            (None, game.id, Condition.NOT_STARTED.value),
+        )
+        self._con.execute(
+            """
+            INSERT INTO
+                hints (game_id, hint, num, color, created_at)
+            VALUES (?, ?, ?, ?, strftime('%s', 'now'))
+            """,
+            (game.id, None, None, None)
         )
 
         self._con.commit()

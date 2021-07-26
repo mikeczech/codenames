@@ -32,8 +32,11 @@ class TestSQLiteGamePersister:
                 Word(id=4, value="New York", color=Color.BLUE, selected_at=None),
                 Word(id=5, value="Spring", color=Color.NEUTRAL, selected_at=None),
                 Word(id=6, value="Court", color=Color.ASSASSIN, selected_at=None),
+                Word(id=7, value="Tube", color=Color.BLUE, selected_at=None),
+                Word(id=8, value="Point", color=Color.RED, selected_at=None),
             ],
-            "hints": [],
+            "hints": [{"id": 1, "word": None, "num": None, "color": None}],
+            "turns": [{"hint_id": None, "condition": Condition.NOT_STARTED}],
             "players": [],
             "metadata": {"condition": Condition.NOT_STARTED},
         }
@@ -62,12 +65,12 @@ class TestSQLiteGamePersister:
 
         # then
         result = persister.load()["hints"]
-        assert result[0]["word"] == "myfirsthint"
-        assert result[0]["num"] == 2
-        assert result[0]["color"] == Color.RED
-        assert result[1]["word"] == "mysecondhint"
-        assert result[1]["num"] == 3
-        assert result[1]["color"] == Color.BLUE
+        assert result[1]["word"] == "myfirsthint"
+        assert result[1]["num"] == 2
+        assert result[1]["color"] == Color.RED
+        assert result[2]["word"] == "mysecondhint"
+        assert result[2]["num"] == 3
+        assert result[2]["color"] == Color.BLUE
 
     def test_push_condition(self, db_con):
         # given

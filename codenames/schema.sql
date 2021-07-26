@@ -29,9 +29,9 @@ CREATE TABLE moves (
 CREATE TABLE hints (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   game_id INTEGER NOT NULL,
-  hint TEXT NOT NULL,
-  num INTEGER NOT NULL,
-  color INTEGER NOT NULL,
+  hint TEXT,
+  num INTEGER,
+  color INTEGER,
   created_at INTEGER NOT NULL
 );
 
