@@ -255,7 +255,10 @@ class PlayerTurnGameState(GameState):
     def guess(self, word_id: int) -> None:
         game_info = self.get_info()
 
-        if word_id not in game_info["words"]:
+        if (
+            word_id not in game_info["words"]
+            or not game_info["words"][word_id].is_active
+        ):
             raise StateException(
                 f"Word with id {id} is either not active or does not exist."
             )
