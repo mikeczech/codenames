@@ -59,12 +59,6 @@ class Word:
 
 
 class GameBackend(ABC):
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        pass
-
     @property
     def game_id(self) -> int:
         raise NotImplementedError()
@@ -93,6 +87,9 @@ class GameBackend(ABC):
         raise NotImplementedError()
 
     def has_joined(self, session_id: str) -> bool:
+        raise NotImplementedError()
+
+    def commit(self) -> None:
         raise NotImplementedError()
 
 
@@ -169,16 +166,16 @@ class NotStartedGameState(GameState):
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        with self.backend as b:
-            b.push_condition(Condition.BLUE_SPY)
+        self.backend.push_condition(Condition.BLUE_SPY)
+        self.backend.commit()
 
     def join(self, color: Color, role: Role) -> None:
         if self.backend.is_occupied(color, role):
             raise RoleOccupiedException()
         if self.backend.has_joined(self._session_id):
             raise AlreadyJoinedException()
-        with self.backend as b:
-            b.add_player(self._session_id, self._is_admin, color, role)
+        self.backend.add_player(self._session_id, self._is_admin, color, role)
+        self.backend.commit()
 
     def guess(self, word_id: int) -> None:
         raise StateException("The game has not started yet.")
@@ -210,14 +207,14 @@ class SpyTurnGameState(GameState):
         raise StateException("A spy must provide a hint")
 
     def give_hint(self, word: str, num: int) -> None:
-        with self.backend as b:
-            b.add_hint(word, num, self._color)
-            if self._color == Color.BLUE:
-                b.push_condition(Condition.BLUE_PLAYER)
-            elif self._color == Color.RED:
-                b.push_condition(Condition.RED_PLAYER)
-            else:
-                raise StateException("Cannot handle color '{self._color}'")
+        self.backend.add_hint(word, num, self._color)
+        if self._color == Color.BLUE:
+            self.backend.push_condition(Condition.BLUE_PLAYER)
+        elif self._color == Color.RED:
+            self.backend.push_condition(Condition.RED_PLAYER)
+        else:
+            raise StateException("Cannot handle color '{self._color}'")
+        self.backend.commit()
 
 
 class PlayerTurnGameState(GameState):
@@ -273,57 +270,55 @@ class PlayerTurnGameState(GameState):
 
         num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)
         guessed_color = word_info[word_id].color
-        with self.backend as b:
-            num_remaining_guesses = self._count_remaining_guesses(game_info)
-            if num_remaining_guesses == 0:
-                self.end_turn(b)
-            else:
-                b.add_guess(word_id)
 
-                # determine next game condition
-                if guessed_color == Color.NEUTRAL:
-                    self.end_turn(b)
-                elif self._color == Color.BLUE and guessed_color == Color.RED:
-                    if num_red_words_left == 1:
-                        b.push_condition(Condition.RED_WINS)
-                    else:
-                        self.end_turn(b)
-                elif self._color == Color.RED and guessed_color == Color.BLUE:
-                    if num_blue_words_left == 1:
-                        b.push_condition(Condition.BLUE_WINS)
-                    else:
-                        self.end_turn(b)
-                elif self._color == Color.BLUE and guessed_color == Color.BLUE:
-                    if num_blue_words_left == 1:
-                        b.push_condition(Condition.BLUE_WINS)
-                    else:
-                        b.push_condition(Condition.BLUE_PLAYER)
-                elif self._color == Color.RED and guessed_color == Color.RED:
-                    if num_red_words_left == 1:
-                        b.push_condition(Condition.RED_WINS)
-                    else:
-                        b.push_condition(Condition.RED_PLAYER)
-                elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
-                    b.push_condition(Condition.RED_WINS)
-                elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
-                    b.push_condition(Condition.BLUE_WINS)
-                else:
-                    raise StateException(f"Cannot handle guess of word id {word_id}.")
-
-    def end_turn(self, backend: Optional[GameBackend] = None) -> None:
-        if backend:
-            self._end_turn(backend)
+        num_remaining_guesses = self._count_remaining_guesses(game_info)
+        if num_remaining_guesses == 0:
+            self.end_turn()
         else:
-            with self.backend as b:
-                self._end_turn(b)
+            self.backend.add_guess(word_id)
 
-    def _end_turn(self, backend: GameBackend):
+            # determine next game condition
+            if guessed_color == Color.NEUTRAL:
+                self.end_turn(do_commit=False)
+            elif self._color == Color.BLUE and guessed_color == Color.RED:
+                if num_red_words_left == 1:
+                    self.backend.push_condition(Condition.RED_WINS)
+                else:
+                    self.end_turn(do_commit=False)
+            elif self._color == Color.RED and guessed_color == Color.BLUE:
+                if num_blue_words_left == 1:
+                    self.backend.push_condition(Condition.BLUE_WINS)
+                else:
+                    self.end_turn(do_commit=False)
+            elif self._color == Color.BLUE and guessed_color == Color.BLUE:
+                if num_blue_words_left == 1:
+                    self.backend.push_condition(Condition.BLUE_WINS)
+                else:
+                    self.backend.push_condition(Condition.BLUE_PLAYER)
+            elif self._color == Color.RED and guessed_color == Color.RED:
+                if num_red_words_left == 1:
+                    self.backend.push_condition(Condition.RED_WINS)
+                else:
+                    self.backend.push_condition(Condition.RED_PLAYER)
+            elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
+                self.backend.push_condition(Condition.RED_WINS)
+            elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
+                self.backend.push_condition(Condition.BLUE_WINS)
+            else:
+                raise StateException(f"Cannot handle guess of word id {word_id}.")
+
+            self.backend.commit()
+
+    def end_turn(self, do_commit: bool = True) -> None:
         if self._color == Color.BLUE:
-            backend.push_condition(Condition.RED_SPY)
+            self.backend.push_condition(Condition.RED_SPY)
         elif self._color == Color.RED:
-            backend.push_condition(Condition.BLUE_SPY)
+            self.backend.push_condition(Condition.BLUE_SPY)
         else:
             raise StateException(f"Cannot handle color {self._color}.")
+
+        if do_commit:
+            self.backend.commit()
 
 
 class FinishedGameState(GameState):
@@ -378,13 +373,6 @@ class SQLiteGameBackend(GameBackend):
     @property
     def game_id(self) -> int:
         return self._game_id
-
-    def __enter__(self):
-        self._con.rollback()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self._con.commit()
 
     def load(self) -> Dict[str, Any]:
         active_words = self._con.execute(
@@ -547,6 +535,9 @@ class SQLiteGameBackend(GameBackend):
         """,
             (self._game_id, session_id),
         )
+
+    def commit(self) -> None:
+        self._con.commit()
 
 
 class SQLiteGameManager:
