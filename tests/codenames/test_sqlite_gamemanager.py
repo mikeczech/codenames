@@ -25,16 +25,16 @@ class TestSQLiteGamePersister:
 
         # then
         assert result == {
-            "words": [
-                Word(id=1, value="Hollywood", color=Color.RED, selected_at=None),
-                Word(id=2, value="Well", color=Color.BLUE, selected_at=None),
-                Word(id=3, value="Foot", color=Color.RED, selected_at=None),
-                Word(id=4, value="New York", color=Color.BLUE, selected_at=None),
-                Word(id=5, value="Spring", color=Color.NEUTRAL, selected_at=None),
-                Word(id=6, value="Court", color=Color.ASSASSIN, selected_at=None),
-                Word(id=7, value="Tube", color=Color.BLUE, selected_at=None),
-                Word(id=8, value="Point", color=Color.RED, selected_at=None),
-            ],
+            "words": {
+                1: Word(id=1, value="Hollywood", color=Color.RED, selected_at=None),
+                2: Word(id=2, value="Well", color=Color.BLUE, selected_at=None),
+                3: Word(id=3, value="Foot", color=Color.RED, selected_at=None),
+                4: Word(id=4, value="New York", color=Color.BLUE, selected_at=None),
+                5: Word(id=5, value="Spring", color=Color.NEUTRAL, selected_at=None),
+                6: Word(id=6, value="Court", color=Color.ASSASSIN, selected_at=None),
+                7: Word(id=7, value="Tube", color=Color.BLUE, selected_at=None),
+                8: Word(id=8, value="Point", color=Color.RED, selected_at=None),
+            },
             "hints": [{"id": 1, "word": None, "num": None, "color": None}],
             "turns": [{"hint_id": None, "condition": Condition.NOT_STARTED}],
             "players": [],
@@ -51,8 +51,8 @@ class TestSQLiteGamePersister:
 
         # then
         result = backend.load()
-        assert result["words"][0].selected_at
-        assert not result["words"][1].selected_at
+        assert result["words"][1].selected_at
+        assert not result["words"][2].selected_at
 
     def test_add_hints(self, db_con):
         # given

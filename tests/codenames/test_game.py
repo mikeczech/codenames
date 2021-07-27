@@ -175,12 +175,12 @@ class TestPlayerTurnGameState:
     def test_guess_correct_word(self, blue_player_turn_state):
         # when
         game_info = blue_player_turn_state.get_info()
-        pre_condition = [w for w in game_info["words"] if w.id == 2][0].is_active
+        pre_condition = game_info["words"][2].is_active
 
         blue_player_turn_state.guess(2)  # guessed word is blue
 
         game_info = blue_player_turn_state.get_info()
-        post_condition = [w for w in game_info["words"] if w.id == 2][0].is_active
+        post_condition = game_info["words"][2].is_active
 
         # then
         assert pre_condition

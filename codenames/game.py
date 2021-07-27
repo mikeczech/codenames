@@ -235,20 +235,13 @@ class PlayerTurnGameState(GameState):
     def _count_num_words_left(self, game_info) -> Tuple[int, int]:
         num_blue_words_left = 0
         num_red_words_left = 0
-        for w in game_info["words"]:
+        for w in game_info["words"].values():
             if w.is_active:
                 if w.color == Color.RED:
                     num_red_words_left += 1
                 elif w.color == Color.BLUE:
                     num_blue_words_left += 1
         return num_blue_words_left, num_red_words_left
-
-    def _collect_word_info(self, game_info) -> Dict[int, Word]:
-        word_options = {}
-        for w in game_info["words"]:
-            if w.is_active:
-                word_options[w.id] = w
-        return word_options
 
     def start_game(self) -> None:
         raise StateException("The game has already started")
@@ -261,15 +254,14 @@ class PlayerTurnGameState(GameState):
 
     def guess(self, word_id: int) -> None:
         game_info = self.get_info()
-        word_info = self._collect_word_info(game_info)
 
-        if word_id not in word_info:
+        if word_id not in game_info["words"]:
             raise StateException(
                 f"Word with id {id} is either not active or does not exist."
             )
 
         num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)
-        guessed_color = word_info[word_id].color
+        guessed_color = game_info["words"][word_id].color
 
         num_remaining_guesses = self._count_remaining_guesses(game_info)
         if num_remaining_guesses == 0:
@@ -429,10 +421,10 @@ class SQLiteGameBackend(GameBackend):
         ).fetchone()
 
         return {
-            "words": [
-                Word(id=w[0], value=w[1], color=Color(w[2]), selected_at=w[3])
+            "words": {
+                w[0]: Word(id=w[0], value=w[1], color=Color(w[2]), selected_at=w[3])
                 for w in active_words
-            ],
+            },
             "hints": [
                 {
                     "id": h[0],
