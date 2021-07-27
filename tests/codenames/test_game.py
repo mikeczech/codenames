@@ -10,7 +10,7 @@ from codenames.game import (
     PlayerTurnGameState,
     Role,
     RoleOccupiedException,
-    SQLiteGamePersister,
+    SQLiteGameBackend,
     SpyTurnGameState,
     StateException,
 )
@@ -19,14 +19,14 @@ from utils import create_default_game, add_players
 
 class TestNotStartedGameState:
     @fixture
-    def persister(self, db_con):
-        persister = SQLiteGamePersister(42, db_con)
+    def backend(self, db_con):
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
-        return persister
+        return backend
 
     @fixture
-    def not_started_state(self, persister):
-        return NotStartedGameState("mysessionid", False, persister)
+    def not_started_state(self, backend):
+        return NotStartedGameState("mysessionid", False, backend)
 
     def test_invalid_invocations(self, not_started_state):
         # when / then
@@ -81,18 +81,18 @@ class TestNotStartedGameState:
 
 class TestSpyTurnGameState:
     @fixture
-    def persister(self, db_con):
-        persister = SQLiteGamePersister(42, db_con)
+    def backend(self, db_con):
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
-        return persister
+        return backend
 
     @fixture
-    def blue_spy_turn_state(self, persister):
-        return SpyTurnGameState("mysessionid", False, persister, Color.BLUE)
+    def blue_spy_turn_state(self, backend):
+        return SpyTurnGameState("mysessionid", False, backend, Color.BLUE)
 
     @fixture
-    def red_spy_turn_state(self, persister):
-        return SpyTurnGameState("mysessionid", False, persister, Color.RED)
+    def red_spy_turn_state(self, backend):
+        return SpyTurnGameState("mysessionid", False, backend, Color.RED)
 
     def test_invalid_invocations(self, blue_spy_turn_state):
         # when / then
@@ -125,7 +125,7 @@ class TestSpyTurnGameState:
     ):
         # given
         spy_turn_state = request.getfixturevalue(spy_turn_state)
-        with spy_turn_state.persister as c:
+        with spy_turn_state.backend as c:
             c.push_condition(initial_condition)
 
         # when
@@ -146,17 +146,17 @@ class TestSpyTurnGameState:
 
 class TestPlayerTurnGameState:
     @fixture
-    def persister(self, db_con):
-        persister = SQLiteGamePersister(42, db_con)
+    def backend(self, db_con):
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
-        return persister
+        return backend
 
     @fixture
-    def blue_player_turn_state(self, persister):
-        with persister as c:
+    def blue_player_turn_state(self, backend):
+        with backend as c:
             c.add_hint("myhint", 1, Color.BLUE)
             c.push_condition(Condition.BLUE_PLAYER)
-        return PlayerTurnGameState("mysessionid", False, persister, Color.BLUE)
+        return PlayerTurnGameState("mysessionid", False, backend, Color.BLUE)
 
     def test_invalid_invocations(self, blue_player_turn_state):
         # when / then
@@ -169,9 +169,7 @@ class TestPlayerTurnGameState:
         with pytest.raises(StateException):
             blue_player_turn_state.join(Color.RED, Role.PLAYER)
 
-    def test_cannot_guess_already_selected_word(
-        self, persister, blue_player_turn_state
-    ):
+    def test_cannot_guess_already_selected_word(self, backend, blue_player_turn_state):
         # when / then
         with pytest.raises(StateException):
             blue_player_turn_state.guess(42)  # word id 42 does not exist
@@ -207,12 +205,10 @@ class TestPlayerTurnGameState:
         # then
         assert game_info["metadata"]["condition"] == Condition.RED_SPY
 
-    def test_guessing_opposite_color_loses_game(
-        self, persister, blue_player_turn_state
-    ):
+    def test_guessing_opposite_color_loses_game(self, backend, blue_player_turn_state):
         # given
-        persister.add_guess(1)
-        persister.add_guess(8)  # only a single red word is left
+        backend.add_guess(1)
+        backend.add_guess(8)  # only a single red word is left
 
         # when
         blue_player_turn_state.guess(3)
@@ -229,11 +225,11 @@ class TestPlayerTurnGameState:
         # then
         assert game_info["metadata"]["condition"] == Condition.RED_SPY
 
-    def test_guessing_final_word_wins_game(self, persister, blue_player_turn_state):
+    def test_guessing_final_word_wins_game(self, backend, blue_player_turn_state):
         # given
-        persister.add_hint("myhint", 1, Color.BLUE)
-        persister.add_guess(2)
-        persister.add_guess(7)  # only a single blue word is left
+        backend.add_hint("myhint", 1, Color.BLUE)
+        backend.add_guess(2)
+        backend.add_guess(7)  # only a single blue word is left
 
         # when
         blue_player_turn_state.guess(4)

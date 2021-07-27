@@ -58,7 +58,7 @@ class Word:
         return not bool(self.selected_at)
 
 
-class GamePersister(ABC):
+class GameBackend(ABC):
     def __enter__(self):
         return self
 
@@ -117,14 +117,14 @@ class RoleOccupiedException(Exception):
 
 
 class GameState(ABC):
-    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
-        self._persister = persister
+    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
+        self._backend = backend
         self._session_id = session_id
         self._is_admin = is_admin
 
     @property
-    def persister(self) -> GamePersister:
-        return self._persister
+    def backend(self) -> GameBackend:
+        return self._backend
 
     @property
     def session_id(self) -> str:
@@ -135,7 +135,7 @@ class GameState(ABC):
         return self._is_admin
 
     def get_info(self) -> Dict[str, Any]:
-        return self._persister.load()
+        return self._backend.load()
 
     def start_game(self) -> None:
         raise NotImplementedError()
@@ -154,31 +154,31 @@ class GameState(ABC):
 
 
 class NotStartedGameState(GameState):
-    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
-        super().__init__(session_id, is_admin, persister)
+    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
+        super().__init__(session_id, is_admin, backend)
 
     def start_game(self) -> None:
         if self.get_info()["metadata"]["condition"] != Condition.NOT_STARTED:
             raise StateException("Game has already been started.")
 
         conditions = [
-            self._persister.is_occupied(Color.RED, Role.PLAYER),
-            self._persister.is_occupied(Color.BLUE, Role.PLAYER),
-            self._persister.is_occupied(Color.RED, Role.SPYMASTER),
-            self._persister.is_occupied(Color.BLUE, Role.SPYMASTER),
+            self._backend.is_occupied(Color.RED, Role.PLAYER),
+            self._backend.is_occupied(Color.BLUE, Role.PLAYER),
+            self._backend.is_occupied(Color.RED, Role.SPYMASTER),
+            self._backend.is_occupied(Color.BLUE, Role.SPYMASTER),
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        with self.persister as c:
-            c.push_condition(Condition.BLUE_SPY)
+        with self.backend as b:
+            b.push_condition(Condition.BLUE_SPY)
 
     def join(self, color: Color, role: Role) -> None:
-        if self.persister.is_occupied(color, role):
+        if self.backend.is_occupied(color, role):
             raise RoleOccupiedException()
-        if self.persister.has_joined(self._session_id):
+        if self.backend.has_joined(self._session_id):
             raise AlreadyJoinedException()
-        with self.persister as c:
-            c.add_player(self._session_id, self._is_admin, color, role)
+        with self.backend as b:
+            b.add_player(self._session_id, self._is_admin, color, role)
 
     def guess(self, word_id: int) -> None:
         raise StateException("The game has not started yet.")
@@ -192,9 +192,9 @@ class NotStartedGameState(GameState):
 
 class SpyTurnGameState(GameState):
     def __init__(
-        self, session_id: str, is_admin: bool, persister: GamePersister, color: Color
+        self, session_id: str, is_admin: bool, backend: GameBackend, color: Color
     ):
-        super().__init__(session_id, is_admin, persister)
+        super().__init__(session_id, is_admin, backend)
         self._color = color
 
     def start_game(self) -> None:
@@ -210,21 +210,21 @@ class SpyTurnGameState(GameState):
         raise StateException("A spy must provide a hint")
 
     def give_hint(self, word: str, num: int) -> None:
-        with self.persister as c:
-            c.add_hint(word, num, self._color)
+        with self.backend as b:
+            b.add_hint(word, num, self._color)
             if self._color == Color.BLUE:
-                c.push_condition(Condition.BLUE_PLAYER)
+                b.push_condition(Condition.BLUE_PLAYER)
             elif self._color == Color.RED:
-                c.push_condition(Condition.RED_PLAYER)
+                b.push_condition(Condition.RED_PLAYER)
             else:
                 raise StateException("Cannot handle color '{self._color}'")
 
 
 class PlayerTurnGameState(GameState):
     def __init__(
-        self, session_id: str, is_admin: bool, persister: GamePersister, color: Color
+        self, session_id: str, is_admin: bool, backend: GameBackend, color: Color
     ):
-        super().__init__(session_id, is_admin, persister)
+        super().__init__(session_id, is_admin, backend)
         self._color = color
 
     def _count_remaining_guesses(self, game_info) -> int:
@@ -273,96 +273,94 @@ class PlayerTurnGameState(GameState):
 
         num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)
         guessed_color = word_info[word_id].color
-        with self.persister as c:
+        with self.backend as b:
             num_remaining_guesses = self._count_remaining_guesses(game_info)
             if num_remaining_guesses == 0:
-                self.end_turn(c)
+                self.end_turn(b)
             else:
-                c.add_guess(word_id)
+                b.add_guess(word_id)
 
                 # determine next game condition
                 if guessed_color == Color.NEUTRAL:
-                    self.end_turn(c)
+                    self.end_turn(b)
                 elif self._color == Color.BLUE and guessed_color == Color.RED:
                     if num_red_words_left == 1:
-                        c.push_condition(Condition.RED_WINS)
+                        b.push_condition(Condition.RED_WINS)
                     else:
-                        self.end_turn(c)
+                        self.end_turn(b)
                 elif self._color == Color.RED and guessed_color == Color.BLUE:
                     if num_blue_words_left == 1:
-                        c.push_condition(Condition.BLUE_WINS)
+                        b.push_condition(Condition.BLUE_WINS)
                     else:
-                        self.end_turn(c)
+                        self.end_turn(b)
                 elif self._color == Color.BLUE and guessed_color == Color.BLUE:
                     if num_blue_words_left == 1:
-                        c.push_condition(Condition.BLUE_WINS)
+                        b.push_condition(Condition.BLUE_WINS)
                     else:
-                        c.push_condition(Condition.BLUE_PLAYER)
+                        b.push_condition(Condition.BLUE_PLAYER)
                 elif self._color == Color.RED and guessed_color == Color.RED:
                     if num_red_words_left == 1:
-                        c.push_condition(Condition.RED_WINS)
+                        b.push_condition(Condition.RED_WINS)
                     else:
-                        c.push_condition(Condition.RED_PLAYER)
+                        b.push_condition(Condition.RED_PLAYER)
                 elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
-                    c.push_condition(Condition.RED_WINS)
+                    b.push_condition(Condition.RED_WINS)
                 elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
-                    c.push_condition(Condition.BLUE_WINS)
+                    b.push_condition(Condition.BLUE_WINS)
                 else:
                     raise StateException(f"Cannot handle guess of word id {word_id}.")
 
-    def end_turn(self, c: Optional[GamePersister] = None) -> None:
-        if c:
-            self._end_turn(c)
+    def end_turn(self, backend: Optional[GameBackend] = None) -> None:
+        if backend:
+            self._end_turn(backend)
         else:
-            with self.persister as c:
-                self._end_turn(c)
+            with self.backend as b:
+                self._end_turn(b)
 
-    def _end_turn(self, persister: GamePersister):
+    def _end_turn(self, backend: GameBackend):
         if self._color == Color.BLUE:
-            persister.push_condition(Condition.RED_SPY)
+            backend.push_condition(Condition.RED_SPY)
         elif self._color == Color.RED:
-            persister.push_condition(Condition.BLUE_SPY)
+            backend.push_condition(Condition.BLUE_SPY)
         else:
             raise StateException(f"Cannot handle color {self._color}.")
 
 
 class FinishedGameState(GameState):
-    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
-        super().__init__(session_id, is_admin, persister)
+    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
+        super().__init__(session_id, is_admin, backend)
 
 
 class Game:
-    def __init__(self, session_id: str, is_admin: bool, persister: GamePersister):
+    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
         self._session_id = session_id
         self._is_admin = is_admin
-        self._persister = persister
+        self._backend = backend
 
     @property
     def id(self):
-        return self._persister.game_id
+        return self._backend.game_id
 
     def load_state(self) -> GameState:
-        game_info = self._persister.load()
+        game_info = self._backend.load()
         condition = game_info["metadata"]["condition"]
         if condition == Condition.NOT_STARTED:
-            return NotStartedGameState(
-                self._session_id, self._is_admin, self._persister
-            )
+            return NotStartedGameState(self._session_id, self._is_admin, self._backend)
         elif condition == Condition.RED_SPY:
             return SpyTurnGameState(
-                self._session_id, self._is_admin, self._persister, Color.RED
+                self._session_id, self._is_admin, self._backend, Color.RED
             )
         elif condition == Condition.BLUE_SPY:
             return SpyTurnGameState(
-                self._session_id, self._is_admin, self._persister, Color.BLUE
+                self._session_id, self._is_admin, self._backend, Color.BLUE
             )
         elif condition == Condition.RED_PLAYER:
             return PlayerTurnGameState(
-                self._session_id, self._is_admin, self._persister, Color.RED
+                self._session_id, self._is_admin, self._backend, Color.RED
             )
         elif condition == Condition.BLUE_PLAYER:
             return PlayerTurnGameState(
-                self._session_id, self._is_admin, self._persister, Color.BLUE
+                self._session_id, self._is_admin, self._backend, Color.BLUE
             )
         else:
             raise Exception()
@@ -372,7 +370,7 @@ class GameAlreadyExistsException(Exception):
     pass
 
 
-class SQLiteGamePersister(GamePersister):
+class SQLiteGameBackend(GameBackend):
     def __init__(self, game_id: int, con: Connection):
         self._game_id = game_id
         self._con = con
@@ -618,7 +616,7 @@ class SQLiteGameManager:
         game = self._con.execute(
             "SELECT id from games WHERE name = ?", (name,)
         ).fetchone()
-        return Game(session_id, True, SQLiteGamePersister(game[0], self._con))
+        return Game(session_id, True, SQLiteGameBackend(game[0], self._con))
 
     def _get_random_words(self) -> List[Word]:
         words = self._con.execute(

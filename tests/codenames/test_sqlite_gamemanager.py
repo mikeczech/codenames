@@ -2,7 +2,7 @@ import pytest
 
 from codenames.game import (
     SQLiteGameManager,
-    SQLiteGamePersister,
+    SQLiteGameBackend,
     Word,
     Color,
     Role,
@@ -17,11 +17,11 @@ from utils import create_default_game, add_players
 class TestSQLiteGamePersister:
     def test_load(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
 
         # when
-        result = persister.load()
+        result = backend.load()
 
         # then
         assert result == {
@@ -43,28 +43,28 @@ class TestSQLiteGamePersister:
 
     def test_guess_word(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
 
         # when
-        persister.add_guess(1)
+        backend.add_guess(1)
 
         # then
-        result = persister.load()
+        result = backend.load()
         assert result["words"][0].selected_at
         assert not result["words"][1].selected_at
 
     def test_add_hints(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
 
         # when
-        persister.add_hint("myfirsthint", 2, Color.RED)
-        persister.add_hint("mysecondhint", 3, Color.BLUE)
+        backend.add_hint("myfirsthint", 2, Color.RED)
+        backend.add_hint("mysecondhint", 3, Color.BLUE)
 
         # then
-        result = persister.load()["hints"]
+        result = backend.load()["hints"]
         assert result[1]["word"] == "myfirsthint"
         assert result[1]["num"] == 2
         assert result[1]["color"] == Color.RED
@@ -74,26 +74,26 @@ class TestSQLiteGamePersister:
 
     def test_push_condition(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when
-        persister.push_condition(Condition.BLUE_SPY)
+        backend.push_condition(Condition.BLUE_SPY)
 
         # then
-        metadata = persister.load()["metadata"]
+        metadata = backend.load()["metadata"]
         assert metadata["condition"] == Condition.BLUE_SPY
 
     def test_has_joined(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
         add_players(db_con)  # adds session id A23 but not A34
 
         # when
-        has_joined = persister.has_joined("A23")
-        has_not_joined = persister.has_joined("A34")
+        has_joined = backend.has_joined("A23")
+        has_not_joined = backend.has_joined("A34")
 
         # then
         assert has_joined
@@ -101,17 +101,17 @@ class TestSQLiteGamePersister:
 
     def test_add_players(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
 
         # when
-        persister.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-        persister.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
-        persister.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
-        persister.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
+        backend.add_player("ABDB23", False, Color.RED, Role.PLAYER)
+        backend.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
+        backend.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
+        backend.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
 
         # then
-        result = persister.load()["players"]
+        result = backend.load()["players"]
         assert result[0] == {
             "session_id": "ABDB23",
             "color": Color.RED,
@@ -139,15 +139,15 @@ class TestSQLiteGamePersister:
 
     def test_remove_players(self, db_con):
         # given
-        persister = SQLiteGamePersister(42, db_con)
+        backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when
-        persister.remove_player("A100")
+        backend.remove_player("A100")
 
         # then
-        result = persister.load()["players"]
+        result = backend.load()["players"]
         assert len(result) == 3
         assert "A100" not in [r["session_id"] for r in result]
 
