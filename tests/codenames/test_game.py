@@ -84,28 +84,29 @@ class TestSpyTurnGameState:
     def backend(self, db_con):
         backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
+        add_players(db_con)
         return backend
 
     @fixture
     def blue_spy_turn_state(self, backend):
-        return SpyTurnGameState("mysessionid", False, backend, Color.BLUE)
+        return SpyTurnGameState("A100", False, backend, Color.BLUE)
 
     @fixture
     def red_spy_turn_state(self, backend):
-        return SpyTurnGameState("mysessionid", False, backend, Color.RED)
+        return SpyTurnGameState("A22", False, backend, Color.RED)
 
     def test_invalid_invocations(self, blue_spy_turn_state):
         # when / then
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_spy_turn_state.guess(0)
 
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_spy_turn_state.start_game()
 
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_spy_turn_state.join(Color.RED, Role.PLAYER)
 
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_spy_turn_state.end_turn()
 
     @pytest.mark.parametrize(
@@ -148,23 +149,24 @@ class TestPlayerTurnGameState:
     def backend(self, db_con):
         backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
+        add_players(db_con)
         return backend
 
     @fixture
     def blue_player_turn_state(self, backend):
         backend.add_hint("myhint", 1, Color.BLUE)
         backend.push_condition(Condition.BLUE_PLAYER)
-        return PlayerTurnGameState("mysessionid", False, backend, Color.BLUE)
+        return PlayerTurnGameState("A21", False, backend, Color.BLUE)
 
     def test_invalid_invocations(self, blue_player_turn_state):
         # when / then
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_player_turn_state.give_hint("myword", 2)
 
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_player_turn_state.start_game()
 
-        with pytest.raises(StateException):
+        with pytest.raises(Exception):
             blue_player_turn_state.join(Color.RED, Role.PLAYER)
 
     def test_cannot_guess_already_selected_word(self, backend, blue_player_turn_state):

@@ -42,6 +42,22 @@ class Condition(Enum):
     RED_WINS = 6
     BLUE_WINS = 7
 
+    @property
+    def color(self) -> Color:
+        if self == self.BLUE_PLAYER or self == self.BLUE_SPY or self == self.BLUE_WINS:
+            return Color.BLUE
+        if self == self.RED_PLAYER or self == self.RED_SPY or self == self.RED_WINS:
+            return Color.RED
+        raise Exception("Cannot determine color.")
+
+    @property
+    def role(self) -> Role:
+        if self == self.BLUE_PLAYER or self == self.RED_PLAYER:
+            return Role.PLAYER
+        if self == self.BLUE_SPY or self == self.RED_SPY:
+            return Role.SPYMASTER
+        raise Exception("Cannot determine role.")
+
 
 NUM_PLAYERS = 4
 
@@ -86,6 +102,9 @@ class GameBackend(ABC):
     def is_occupied(self, color: Color, role: Role) -> bool:
         raise NotImplementedError()
 
+    def get_active_session_id(self) -> str:
+        raise NotImplementedError()
+
     def has_joined(self, session_id: str) -> bool:
         raise NotImplementedError()
 
@@ -111,6 +130,16 @@ class AlreadyJoinedException(Exception):
 class RoleOccupiedException(Exception):
     def __init__(self):
         super().__init__()
+
+
+def check_authorization(f):
+    def wrapper(*args, **kwargs):
+        active_session_id = args[0].backend.get_active_session_id()
+        if active_session_id != args[0].session_id:
+            raise Exception("It's not your turn!")
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 class GameState(ABC):
@@ -200,13 +229,17 @@ class SpyTurnGameState(GameState):
     def join(self, color: Color, role: Role) -> None:
         raise StateException("The game has already started")
 
+    @check_authorization
     def guess(self, word_id: int) -> None:
         raise StateException("A spy can give hints only")
 
+    @check_authorization
     def end_turn(self) -> None:
         raise StateException("A spy must provide a hint")
 
+    @check_authorization
     def give_hint(self, word: str, num: int) -> None:
+
         self.backend.add_hint(word, num, self._color)
         if self._color == Color.BLUE:
             self.backend.push_condition(Condition.BLUE_PLAYER)
@@ -249,9 +282,11 @@ class PlayerTurnGameState(GameState):
     def join(self, color: Color, role: Role) -> None:
         raise StateException("The game has already started")
 
+    @check_authorization
     def give_hint(self, word: str, num: int) -> None:
         raise StateException("A player cannot give hints")
 
+    @check_authorization
     def guess(self, word_id: int) -> None:
         game_info = self.get_info()
 
@@ -304,6 +339,7 @@ class PlayerTurnGameState(GameState):
 
             self.backend.commit()
 
+    @check_authorization
     def end_turn(self, do_commit: bool = True) -> None:
         if self._color == Color.BLUE:
             self.backend.push_condition(Condition.RED_SPY)
@@ -530,6 +566,35 @@ class SQLiteGameBackend(GameBackend):
         """,
             (self._game_id, session_id),
         )
+
+    def get_active_session_id(self) -> str:
+        game_condition = Condition(
+            self._con.execute(
+                """
+                SELECT condition
+                FROM turns
+                WHERE game_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (self._game_id,),
+            ).fetchone()[0]
+        )
+
+        active_session_id = self._con.execute(
+            """
+            SELECT session_id
+            FROM players
+            WHERE game_id = ? AND color = ? AND role = ?
+            LIMIT 1
+            """,
+            (self._game_id, game_condition.color.value, game_condition.role.value),
+        ).fetchone()
+
+        if not active_session_id:
+            raise Exception("Could not determine active player (maybe there is none?)")
+
+        return active_session_id[0]
 
     def commit(self) -> None:
         self._con.commit()
