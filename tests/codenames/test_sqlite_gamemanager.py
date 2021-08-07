@@ -14,7 +14,7 @@ from codenames.game import (
 from utils import create_default_game, add_players
 
 
-class TestSQLiteGamePersister:
+class TestSQLiteGameBackend:
     def test_load(self, db_con):
         # given
         backend = SQLiteGameBackend(42, db_con)
