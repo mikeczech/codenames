@@ -42,7 +42,7 @@ CREATE TABLE players (
   role INTEGER NOT NULL
 );
 
-CREATE TABLE turns (
+CREATE TABLE conditions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   hint_id INTEGER,
   game_id INTEGER NOT NULL,

@@ -36,7 +36,7 @@ class TestSQLiteGamePersister:
                 8: Word(id=8, value="Point", color=Color.RED, selected_at=None),
             },
             "hints": [{"id": 1, "word": None, "num": None, "color": None}],
-            "turns": [{"hint_id": None, "condition": Condition.NOT_STARTED}],
+            "conditions": [{"hint_id": None, "condition": Condition.NOT_STARTED}],
             "players": [],
             "metadata": {"condition": Condition.NOT_STARTED},
         }

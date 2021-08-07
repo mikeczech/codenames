@@ -248,11 +248,11 @@ class PlayerTurnGameState(GameState):
 
     def _count_remaining_guesses(self, game_info) -> int:
         latest_hint = game_info["hints"][-1]
-        round_turns = []
-        for t in game_info["turns"]:
+        round_conditions = []
+        for t in game_info["conditions"]:
             if t["hint_id"] == latest_hint["id"]:
-                round_turns.append(t)
-        return (latest_hint["num"] + 1) - len(round_turns)
+                round_conditions.append(t)
+        return (latest_hint["num"] + 1) - len(round_conditions)
 
     def _count_num_words_left(self, game_info) -> Tuple[int, int]:
         num_blue_words_left = 0
@@ -418,10 +418,10 @@ class SQLiteGameBackend(GameBackend):
             (self._game_id,),
         ).fetchall()
 
-        turns = self._con.execute(
+        conditions = self._con.execute(
             """
             SELECT hint_id, condition
-            FROM turns
+            FROM conditions
             WHERE game_id = ?
             ORDER BY id DESC
             """,
@@ -431,7 +431,7 @@ class SQLiteGameBackend(GameBackend):
         latest_turn = self._con.execute(
             """
             SELECT condition
-            FROM turns
+            FROM conditions
             WHERE game_id = ?
             ORDER BY id DESC
             LIMIT 1
@@ -453,7 +453,9 @@ class SQLiteGameBackend(GameBackend):
                 }
                 for h in hints
             ],
-            "turns": [{"hint_id": t[0], "condition": Condition(t[1])} for t in turns],
+            "conditions": [
+                {"hint_id": t[0], "condition": Condition(t[1])} for t in conditions
+            ],
             "players": [
                 {"session_id": p[0], "color": Color(p[1]), "role": Role(p[2])}
                 for p in players
@@ -485,7 +487,7 @@ class SQLiteGameBackend(GameBackend):
         self._con.execute(
             """
             INSERT INTO
-                turns (game_id, hint_id, condition, created_at)
+                conditions (game_id, hint_id, condition, created_at)
             SELECT
                 game_id,
                 id AS hint_id,
@@ -545,7 +547,7 @@ class SQLiteGameBackend(GameBackend):
             self._con.execute(
                 """
                 SELECT condition
-                FROM turns
+                FROM conditions
                 WHERE game_id = ?
                 ORDER BY id DESC
                 LIMIT 1
@@ -611,7 +613,7 @@ class SQLiteGameManager:
         self._con.execute(
             """
             INSERT INTO
-                turns (hint_id, game_id, condition, created_at)
+                conditions (hint_id, game_id, condition, created_at)
             VALUES (?, ?, ?, strftime('%s','now'))
                 """,
             (None, game.id, Condition.NOT_STARTED.value),

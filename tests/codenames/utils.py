@@ -17,7 +17,7 @@ def create_default_game(db_con):
         (42, 7, Color.BLUE.value),
         (42, 8, Color.RED.value),
     ]
-    turns = [(42, None, Condition.NOT_STARTED.value)]
+    conditions = [(42, None, Condition.NOT_STARTED.value)]
     hints = [(42, None, None, None)]
     db_con.executemany(
         """
@@ -30,10 +30,10 @@ def create_default_game(db_con):
     db_con.executemany(
         """
         INSERT INTO
-            turns (game_id, hint_id, condition, created_at)
+            conditions (game_id, hint_id, condition, created_at)
         VALUES (?, ?, ?, strftime('%s', 'now'))
     """,
-        turns,
+        conditions,
     )
     db_con.executemany(
         """
