@@ -105,10 +105,10 @@ class TestSQLiteGamePersister:
         create_default_game(db_con)
 
         # when
-        backend.add_player("ABDB23", False, Color.RED, Role.PLAYER)
-        backend.add_player("ABDB55", False, Color.BLUE, Role.PLAYER)
-        backend.add_player("ABDB33", True, Color.RED, Role.SPYMASTER)
-        backend.add_player("ABDB67", False, Color.BLUE, Role.SPYMASTER)
+        backend.add_player("ABDB23", Color.RED, Role.PLAYER)
+        backend.add_player("ABDB55", Color.BLUE, Role.PLAYER)
+        backend.add_player("ABDB33", Color.RED, Role.SPYMASTER)
+        backend.add_player("ABDB67", Color.BLUE, Role.SPYMASTER)
 
         # then
         result = backend.load()["players"]
@@ -116,25 +116,21 @@ class TestSQLiteGamePersister:
             "session_id": "ABDB23",
             "color": Color.RED,
             "role": Role.PLAYER,
-            "is_admin": False,
         }
         assert result[1] == {
             "session_id": "ABDB55",
             "color": Color.BLUE,
             "role": Role.PLAYER,
-            "is_admin": False,
         }
         assert result[2] == {
             "session_id": "ABDB33",
             "color": Color.RED,
             "role": Role.SPYMASTER,
-            "is_admin": True,
         }
         assert result[3] == {
             "session_id": "ABDB67",
             "color": Color.BLUE,
             "role": Role.SPYMASTER,
-            "is_admin": False,
         }
 
     def test_remove_players(self, db_con):

@@ -82,9 +82,7 @@ class GameBackend(ABC):
     def push_condition(self, condition: Condition) -> None:
         raise NotImplementedError()
 
-    def add_player(
-        self, session_id: str, is_admin: bool, color: Color, role: Role
-    ) -> None:
+    def add_player(self, session_id: str, color: Color, role: Role) -> None:
         raise NotImplementedError()
 
     def remove_player(self, session_id: str) -> None:
@@ -143,10 +141,9 @@ def check_authorization(f):
 
 
 class GameState(ABC):
-    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
+    def __init__(self, session_id: str, backend: GameBackend):
         self._backend = backend
         self._session_id = session_id
-        self._is_admin = is_admin
 
     @property
     def backend(self) -> GameBackend:
@@ -155,10 +152,6 @@ class GameState(ABC):
     @property
     def session_id(self) -> str:
         return self._session_id
-
-    @property
-    def is_admin(self) -> bool:
-        return self._is_admin
 
     def get_info(self) -> Dict[str, Any]:
         return self._backend.load()
@@ -180,8 +173,8 @@ class GameState(ABC):
 
 
 class NotStartedGameState(GameState):
-    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
-        super().__init__(session_id, is_admin, backend)
+    def __init__(self, session_id: str, backend: GameBackend):
+        super().__init__(session_id, backend)
 
     def start_game(self) -> None:
         if self.get_info()["metadata"]["condition"] != Condition.NOT_STARTED:
@@ -203,7 +196,7 @@ class NotStartedGameState(GameState):
             raise RoleOccupiedException()
         if self.backend.has_joined(self._session_id):
             raise AlreadyJoinedException()
-        self.backend.add_player(self._session_id, self._is_admin, color, role)
+        self.backend.add_player(self._session_id, color, role)
         self.backend.commit()
 
     def guess(self, word_id: int) -> None:
@@ -217,10 +210,8 @@ class NotStartedGameState(GameState):
 
 
 class SpyTurnGameState(GameState):
-    def __init__(
-        self, session_id: str, is_admin: bool, backend: GameBackend, color: Color
-    ):
-        super().__init__(session_id, is_admin, backend)
+    def __init__(self, session_id: str, backend: GameBackend, color: Color):
+        super().__init__(session_id, backend)
         self._color = color
 
     def start_game(self) -> None:
@@ -251,10 +242,8 @@ class SpyTurnGameState(GameState):
 
 
 class PlayerTurnGameState(GameState):
-    def __init__(
-        self, session_id: str, is_admin: bool, backend: GameBackend, color: Color
-    ):
-        super().__init__(session_id, is_admin, backend)
+    def __init__(self, session_id: str, backend: GameBackend, color: Color):
+        super().__init__(session_id, backend)
         self._color = color
 
     def _count_remaining_guesses(self, game_info) -> int:
@@ -353,14 +342,13 @@ class PlayerTurnGameState(GameState):
 
 
 class FinishedGameState(GameState):
-    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
-        super().__init__(session_id, is_admin, backend)
+    def __init__(self, session_id: str, backend: GameBackend):
+        super().__init__(session_id, backend)
 
 
 class Game:
-    def __init__(self, session_id: str, is_admin: bool, backend: GameBackend):
+    def __init__(self, session_id: str, backend: GameBackend):
         self._session_id = session_id
-        self._is_admin = is_admin
         self._backend = backend
 
     @property
@@ -371,23 +359,15 @@ class Game:
         game_info = self._backend.load()
         condition = game_info["metadata"]["condition"]
         if condition == Condition.NOT_STARTED:
-            return NotStartedGameState(self._session_id, self._is_admin, self._backend)
+            return NotStartedGameState(self._session_id, self._backend)
         elif condition == Condition.RED_SPY:
-            return SpyTurnGameState(
-                self._session_id, self._is_admin, self._backend, Color.RED
-            )
+            return SpyTurnGameState(self._session_id, self._backend, Color.RED)
         elif condition == Condition.BLUE_SPY:
-            return SpyTurnGameState(
-                self._session_id, self._is_admin, self._backend, Color.BLUE
-            )
+            return SpyTurnGameState(self._session_id, self._backend, Color.BLUE)
         elif condition == Condition.RED_PLAYER:
-            return PlayerTurnGameState(
-                self._session_id, self._is_admin, self._backend, Color.RED
-            )
+            return PlayerTurnGameState(self._session_id, self._backend, Color.RED)
         elif condition == Condition.BLUE_PLAYER:
-            return PlayerTurnGameState(
-                self._session_id, self._is_admin, self._backend, Color.BLUE
-            )
+            return PlayerTurnGameState(self._session_id, self._backend, Color.BLUE)
         else:
             raise Exception()
 
@@ -431,7 +411,7 @@ class SQLiteGameBackend(GameBackend):
 
         players = self._con.execute(
             """
-            SELECT session_id, color, role, is_admin
+            SELECT session_id, color, role
             FROM players
             WHERE game_id = ?
             """,
@@ -475,12 +455,7 @@ class SQLiteGameBackend(GameBackend):
             ],
             "turns": [{"hint_id": t[0], "condition": Condition(t[1])} for t in turns],
             "players": [
-                {
-                    "session_id": p[0],
-                    "color": Color(p[1]),
-                    "role": Role(p[2]),
-                    "is_admin": bool(p[3]),
-                }
+                {"session_id": p[0], "color": Color(p[1]), "role": Role(p[2])}
                 for p in players
             ],
             "metadata": {"condition": Condition(latest_turn[0])},
@@ -535,16 +510,14 @@ class SQLiteGameBackend(GameBackend):
         ).fetchone()
         return bool(players)
 
-    def add_player(
-        self, session_id: str, is_admin: bool, color: Color, role: Role
-    ) -> None:
+    def add_player(self, session_id: str, color: Color, role: Role) -> None:
         self._con.execute(
             """
             INSERT INTO
-                players (game_id, session_id, color, role, is_admin)
-            VALUES (?, ?, ?, ?, ?)
+                players (game_id, session_id, color, role)
+            VALUES (?, ?, ?, ?)
         """,
-            (self._game_id, session_id, color.value, role.value, is_admin),
+            (self._game_id, session_id, color.value, role.value),
         )
 
     def has_joined(self, session_id: str) -> bool:
@@ -667,7 +640,7 @@ class SQLiteGameManager:
         game = self._con.execute(
             "SELECT id from games WHERE name = ?", (name,)
         ).fetchone()
-        return Game(session_id, True, SQLiteGameBackend(game[0], self._con))
+        return Game(session_id, SQLiteGameBackend(game[0], self._con))
 
     def _get_random_words(self) -> List[Word]:
         words = self._con.execute(

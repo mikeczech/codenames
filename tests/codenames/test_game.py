@@ -26,7 +26,7 @@ class TestNotStartedGameState:
 
     @fixture
     def not_started_state(self, backend):
-        return NotStartedGameState("mysessionid", False, backend)
+        return NotStartedGameState("mysessionid", backend)
 
     def test_invalid_invocations(self, not_started_state):
         # when / then
@@ -89,11 +89,11 @@ class TestSpyTurnGameState:
 
     @fixture
     def blue_spy_turn_state(self, backend):
-        return SpyTurnGameState("A100", False, backend, Color.BLUE)
+        return SpyTurnGameState("A100", backend, Color.BLUE)
 
     @fixture
     def red_spy_turn_state(self, backend):
-        return SpyTurnGameState("A22", False, backend, Color.RED)
+        return SpyTurnGameState("A22", backend, Color.RED)
 
     def test_invalid_invocations(self, blue_spy_turn_state):
         # when / then
@@ -156,7 +156,7 @@ class TestPlayerTurnGameState:
     def blue_player_turn_state(self, backend):
         backend.add_hint("myhint", 1, Color.BLUE)
         backend.push_condition(Condition.BLUE_PLAYER)
-        return PlayerTurnGameState("A21", False, backend, Color.BLUE)
+        return PlayerTurnGameState("A21", backend, Color.BLUE)
 
     def test_invalid_invocations(self, blue_player_turn_state):
         # when / then
