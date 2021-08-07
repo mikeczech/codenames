@@ -19,6 +19,7 @@ tqdm = "^4.54.1"
 ipywidgets = "^7.5.1"
 flask = "^1.1.2"
 pytest = "^6.2.4"
+fastapi = {extras = ["all"], version = "^0.68.0"}
 
 [tool.poetry.dev-dependencies]
 httpie = "^2.3.0"
