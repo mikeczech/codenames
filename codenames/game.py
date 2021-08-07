@@ -177,7 +177,7 @@ class NotStartedGameState(GameState):
         super().__init__(session_id, backend)
 
     def start_game(self) -> None:
-        if self.get_info()["metadata"]["condition"] != Condition.NOT_STARTED:
+        if self.get_info()["conditions"][-1]["value"] != Condition.NOT_STARTED:
             raise StateException("Game has already been started.")
 
         conditions = [
@@ -357,7 +357,7 @@ class Game:
 
     def load_state(self) -> GameState:
         game_info = self._backend.load()
-        condition = game_info["metadata"]["condition"]
+        condition = game_info["conditions"][-1]["value"]
         if condition == Condition.NOT_STARTED:
             return NotStartedGameState(self._session_id, self._backend)
         elif condition == Condition.RED_SPY:
@@ -423,21 +423,10 @@ class SQLiteGameBackend(GameBackend):
             SELECT hint_id, condition
             FROM conditions
             WHERE game_id = ?
-            ORDER BY id DESC
+            ORDER BY id ASC
             """,
             (self._game_id,),
         ).fetchall()
-
-        latest_turn = self._con.execute(
-            """
-            SELECT condition
-            FROM conditions
-            WHERE game_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (self._game_id,),
-        ).fetchone()
 
         return {
             "words": {
@@ -454,13 +443,12 @@ class SQLiteGameBackend(GameBackend):
                 for h in hints
             ],
             "conditions": [
-                {"hint_id": t[0], "condition": Condition(t[1])} for t in conditions
+                {"hint_id": t[0], "value": Condition(t[1])} for t in conditions
             ],
             "players": [
                 {"session_id": p[0], "color": Color(p[1]), "role": Role(p[2])}
                 for p in players
             ],
-            "metadata": {"condition": Condition(latest_turn[0])},
         }
 
     def add_guess(self, word_id: int) -> None:

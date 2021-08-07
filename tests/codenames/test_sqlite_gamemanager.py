@@ -36,9 +36,8 @@ class TestSQLiteGamePersister:
                 8: Word(id=8, value="Point", color=Color.RED, selected_at=None),
             },
             "hints": [{"id": 1, "word": None, "num": None, "color": None}],
-            "conditions": [{"hint_id": None, "condition": Condition.NOT_STARTED}],
+            "conditions": [{"hint_id": None, "value": Condition.NOT_STARTED}],
             "players": [],
-            "metadata": {"condition": Condition.NOT_STARTED},
         }
 
     def test_guess_word(self, db_con):
@@ -82,8 +81,7 @@ class TestSQLiteGamePersister:
         backend.push_condition(Condition.BLUE_SPY)
 
         # then
-        metadata = backend.load()["metadata"]
-        assert metadata["condition"] == Condition.BLUE_SPY
+        assert backend.load()["conditions"][-1]["value"] == Condition.BLUE_SPY
 
     def test_has_joined(self, db_con):
         # given
@@ -168,7 +166,7 @@ class TestSQLiteGameManager:
 
         # then
         assert len(info["words"]) == 7
-        assert info["metadata"]["condition"] == Condition.NOT_STARTED
+        assert info["conditions"][-1]["value"] == Condition.NOT_STARTED
 
     def test_initially_there_is_no_game(self, db_con):
         # given

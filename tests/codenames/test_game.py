@@ -61,9 +61,9 @@ class TestNotStartedGameState:
         add_players(db_con)
 
         # when
-        pre_condition = not_started_state.get_info()["metadata"]["condition"]
+        pre_condition = not_started_state.get_info()["conditions"][-1]["value"]
         not_started_state.start_game()
-        post_condition = not_started_state.get_info()["metadata"]["condition"]
+        post_condition = not_started_state.get_info()["conditions"][-1]["value"]
 
         # then
         assert pre_condition == Condition.NOT_STARTED
@@ -129,11 +129,11 @@ class TestSpyTurnGameState:
         spy_turn_state.backend.push_condition(initial_condition)
 
         # when
-        pre_condition = spy_turn_state.get_info()["metadata"]["condition"]
+        pre_condition = spy_turn_state.get_info()["conditions"][-1]["value"]
         spy_turn_state.give_hint("myhint", 2)
 
         post_game_info = spy_turn_state.get_info()
-        post_condition = post_game_info["metadata"]["condition"]
+        post_condition = post_game_info["conditions"][-1]["value"]
         latest_hint = post_game_info["hints"][-1]
 
         # then
@@ -195,7 +195,7 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.RED_SPY
+        assert game_info["conditions"][-1]["value"] == Condition.RED_SPY
 
     def test_guessing_opposite_color_ends_turn(self, blue_player_turn_state):
         # when
@@ -203,7 +203,7 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.RED_SPY
+        assert game_info["conditions"][-1]["value"] == Condition.RED_SPY
 
     def test_guessing_opposite_color_loses_game(self, backend, blue_player_turn_state):
         # given
@@ -215,7 +215,7 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.RED_WINS
+        assert game_info["conditions"][-1]["value"] == Condition.RED_WINS
 
     def test_guessing_neutral_color_ends_turn(self, blue_player_turn_state):
         # when
@@ -223,7 +223,7 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.RED_SPY
+        assert game_info["conditions"][-1]["value"] == Condition.RED_SPY
 
     def test_guessing_final_word_wins_game(self, backend, blue_player_turn_state):
         # given
@@ -236,7 +236,7 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.BLUE_WINS
+        assert game_info["conditions"][-1]["value"] == Condition.BLUE_WINS
 
     def test_guessing_assassin_loses_game(self, blue_player_turn_state):
         # when
@@ -244,9 +244,9 @@ class TestPlayerTurnGameState:
         game_info = blue_player_turn_state.get_info()
 
         # then
-        assert game_info["metadata"]["condition"] == Condition.RED_WINS
+        assert game_info["conditions"][-1]["value"] == Condition.RED_WINS
 
     def test_end_turn(self, blue_player_turn_state):
         # when
         blue_player_turn_state.end_turn()
-        game_info = blue_player_turn_state.get_info()
+        value = blue_player_turn_state.get_info()
