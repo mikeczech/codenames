@@ -126,7 +126,7 @@ class TestSpyTurnGameState:
     ):
         # given
         spy_turn_state = request.getfixturevalue(spy_turn_state)
-        spy_turn_state.backend.push_condition(initial_condition)
+        spy_turn_state.backend.add_condition(initial_condition)
 
         # when
         pre_condition = spy_turn_state.get_info()["conditions"][-1]["value"]
@@ -155,7 +155,7 @@ class TestPlayerTurnGameState:
     @fixture
     def blue_player_turn_state(self, backend):
         backend.add_hint("myhint", 1, Color.BLUE)
-        backend.push_condition(Condition.BLUE_PLAYER)
+        backend.add_condition(Condition.BLUE_PLAYER)
         return PlayerTurnGameState("A21", backend, Color.BLUE)
 
     def test_invalid_invocations(self, blue_player_turn_state):

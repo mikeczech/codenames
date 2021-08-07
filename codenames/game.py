@@ -79,7 +79,7 @@ class GameBackend(ABC):
     def game_id(self) -> int:
         raise NotImplementedError()
 
-    def push_condition(self, condition: Condition) -> None:
+    def add_condition(self, condition: Condition) -> None:
         raise NotImplementedError()
 
     def add_player(self, session_id: str, color: Color, role: Role) -> None:
@@ -188,7 +188,7 @@ class NotStartedGameState(GameState):
         ]
         if not all(conditions):
             raise StateException("The game is not ready.")
-        self.backend.push_condition(Condition.BLUE_SPY)
+        self.backend.add_condition(Condition.BLUE_SPY)
         self.backend.commit()
 
     def join(self, color: Color, role: Role) -> None:
@@ -233,9 +233,9 @@ class SpyTurnGameState(GameState):
 
         self.backend.add_hint(word, num, self._color)
         if self._color == Color.BLUE:
-            self.backend.push_condition(Condition.BLUE_PLAYER)
+            self.backend.add_condition(Condition.BLUE_PLAYER)
         elif self._color == Color.RED:
-            self.backend.push_condition(Condition.RED_PLAYER)
+            self.backend.add_condition(Condition.RED_PLAYER)
         else:
             raise StateException("Cannot handle color '{self._color}'")
         self.backend.commit()
@@ -301,28 +301,28 @@ class PlayerTurnGameState(GameState):
                 self.end_turn(do_commit=False)
             elif self._color == Color.BLUE and guessed_color == Color.RED:
                 if num_red_words_left == 1:
-                    self.backend.push_condition(Condition.RED_WINS)
+                    self.backend.add_condition(Condition.RED_WINS)
                 else:
                     self.end_turn(do_commit=False)
             elif self._color == Color.RED and guessed_color == Color.BLUE:
                 if num_blue_words_left == 1:
-                    self.backend.push_condition(Condition.BLUE_WINS)
+                    self.backend.add_condition(Condition.BLUE_WINS)
                 else:
                     self.end_turn(do_commit=False)
             elif self._color == Color.BLUE and guessed_color == Color.BLUE:
                 if num_blue_words_left == 1:
-                    self.backend.push_condition(Condition.BLUE_WINS)
+                    self.backend.add_condition(Condition.BLUE_WINS)
                 else:
-                    self.backend.push_condition(Condition.BLUE_PLAYER)
+                    self.backend.add_condition(Condition.BLUE_PLAYER)
             elif self._color == Color.RED and guessed_color == Color.RED:
                 if num_red_words_left == 1:
-                    self.backend.push_condition(Condition.RED_WINS)
+                    self.backend.add_condition(Condition.RED_WINS)
                 else:
-                    self.backend.push_condition(Condition.RED_PLAYER)
+                    self.backend.add_condition(Condition.RED_PLAYER)
             elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
-                self.backend.push_condition(Condition.RED_WINS)
+                self.backend.add_condition(Condition.RED_WINS)
             elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
-                self.backend.push_condition(Condition.BLUE_WINS)
+                self.backend.add_condition(Condition.BLUE_WINS)
             else:
                 raise StateException(f"Cannot handle guess of word id {word_id}.")
 
@@ -331,9 +331,9 @@ class PlayerTurnGameState(GameState):
     @check_authorization
     def end_turn(self, do_commit: bool = True) -> None:
         if self._color == Color.BLUE:
-            self.backend.push_condition(Condition.RED_SPY)
+            self.backend.add_condition(Condition.RED_SPY)
         elif self._color == Color.RED:
-            self.backend.push_condition(Condition.BLUE_SPY)
+            self.backend.add_condition(Condition.BLUE_SPY)
         else:
             raise StateException(f"Cannot handle color {self._color}.")
 
@@ -471,7 +471,7 @@ class SQLiteGameBackend(GameBackend):
             (self._game_id, word, num, color.value),
         )
 
-    def push_condition(self, condition: Condition) -> None:
+    def add_condition(self, condition: Condition) -> None:
         self._con.execute(
             """
             INSERT INTO

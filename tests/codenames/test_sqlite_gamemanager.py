@@ -71,14 +71,14 @@ class TestSQLiteGamePersister:
         assert result[2]["num"] == 3
         assert result[2]["color"] == Color.BLUE
 
-    def test_push_condition(self, db_con):
+    def test_add_condition(self, db_con):
         # given
         backend = SQLiteGameBackend(42, db_con)
         create_default_game(db_con)
         add_players(db_con)
 
         # when
-        backend.push_condition(Condition.BLUE_SPY)
+        backend.add_condition(Condition.BLUE_SPY)
 
         # then
         assert backend.load()["conditions"][-1]["value"] == Condition.BLUE_SPY
