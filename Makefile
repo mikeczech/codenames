@@ -12,9 +12,7 @@ run-tests:
 	poetry run pytest tests/codenames $(pytest_args)
 
 run-backend:
-	FLASK_APP=codenames \
-  FLASK_ENV=development \
-  poetry run flask run
+	echo 'not implemented'
 
 run-frontend:
 	(cd frontend && npm start)
