@@ -7,9 +7,6 @@ from enum import Enum
 import random
 from abc import ABC
 
-import pandas as pd
-import numpy as np
-
 from sqlite3 import Connection
 
 LOGGER = logging.getLogger("game")
