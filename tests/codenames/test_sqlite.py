@@ -1,8 +1,6 @@
 import pytest
 
 from codenames.game import (
-    SQLiteGameManager,
-    SQLiteGameBackend,
     Word,
     Color,
     Role,
@@ -10,6 +8,7 @@ from codenames.game import (
     GameAlreadyExistsException,
     StateException,
 )
+from codenames.sqlite import SQLiteGameManager, SQLiteGameBackend
 
 from utils import create_default_game, add_players
 

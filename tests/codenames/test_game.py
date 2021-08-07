@@ -10,10 +10,10 @@ from codenames.game import (
     PlayerTurnGameState,
     Role,
     RoleOccupiedException,
-    SQLiteGameBackend,
     SpyTurnGameState,
     StateException,
 )
+from codenames.sqlite import SQLiteGameBackend
 from utils import create_default_game, add_players
 
 
