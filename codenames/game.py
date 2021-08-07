@@ -1,5 +1,4 @@
 from typing import Dict, Union, Any, List, Tuple, Optional
-from itertools import chain
 from datetime import datetime
 import logging
 from dataclasses import dataclass
@@ -124,6 +123,10 @@ class AlreadyJoinedException(Exception):
 class RoleOccupiedException(Exception):
     def __init__(self):
         super().__init__()
+
+
+class GameAlreadyExistsException(Exception):
+    pass
 
 
 def check_authorization(f):
@@ -366,7 +369,3 @@ class Game:
             return PlayerTurnGameState(self._session_id, self._backend, Color.BLUE)
         else:
             raise Exception()
-
-
-class GameAlreadyExistsException(Exception):
-    pass
