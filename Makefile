@@ -12,7 +12,7 @@ run-tests:
 	poetry run pytest tests/codenames $(pytest_args)
 
 run-backend:
-	echo 'not implemented'
+	poetry run uvicorn --app-dir codenames/ api:app --reload
 
 run-frontend:
 	(cd frontend && npm start)
@@ -21,7 +21,4 @@ run-jupyter:
 	poetry run jupyter lab
 
 init-db:
-	mkdir instance
-	FLASK_APP=codenames \
-  FLASK_ENV=development \
-  poetry run flask init-db
+	poetry run alembic upgrade head
