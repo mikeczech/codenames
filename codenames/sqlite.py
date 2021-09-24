@@ -1,6 +1,7 @@
 from typing import Dict, Union, Any, List, Tuple, Optional
 from itertools import chain
 import random
+import time
 
 from codenames.game import (
     GameBackend,
@@ -11,206 +12,182 @@ from codenames.game import (
     GameAlreadyExistsException,
     Word,
 )
-from sqlite3 import Connection
+
+from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import func
+from sqlalchemy import desc
+from codenames import models, schemas
 
 
-class SQLiteGameBackend(GameBackend):
-    def __init__(self, game_id: int, con: Connection):
+class SQLAlchemyGameBackend(GameBackend):
+    def __init__(self, game_id: int, db: Session):
         self._game_id = game_id
-        self._con = con
+        self._db = db
 
     @property
     def game_id(self) -> int:
         return self._game_id
 
     def load(self) -> Dict[str, Any]:
-        active_words = self._con.execute(
-            """
-            SELECT a.word_id, value, color, selected_at
-            FROM active_words a
-            LEFT JOIN words w
-            ON w.id = a.word_id
-            LEFT JOIN moves c
-            ON c.game_id = a.game_id AND c.word_id  = a.word_id
-            WHERE a.game_id = ?
-            """,
-            (self._game_id,),
-        ).fetchall()
+        active_words = (
+            self._db.query(models.ActiveWord)
+            .join(
+                models.Word, models.Word.id == models.ActiveWord.word_id, isouter=True
+            )
+            .join(
+                models.Move,
+                models.Move.game_id == models.ActiveWord.game_id
+                and models.Move.word_id == models.ActiveWord.word_id,
+            )
+            .filter_by(game_id=self._game_id)
+            .all()
+        )
 
-        hints = self._con.execute(
-            """
-            SELECT id, hint, num, color, created_at
-            FROM hints
-            WHERE game_id = ?
-            ORDER BY id ASC
-            """,
-            (self._game_id,),
-        ).fetchall()
+        hints = (
+            self._db.query(models.Hint)
+            .filter_by(game_id=self._game_id)
+            .order_by(models.Hint.id)
+            .all()
+        )
 
-        players = self._con.execute(
-            """
-            SELECT session_id, color, role
-            FROM players
-            WHERE game_id = ?
-            """,
-            (self._game_id,),
-        ).fetchall()
+        players = self._db.query(models.Player).filter_by(game_id=self._game_id).all()
 
-        conditions = self._con.execute(
-            """
-            SELECT hint_id, condition
-            FROM conditions
-            WHERE game_id = ?
-            ORDER BY id ASC
-            """,
-            (self._game_id,),
-        ).fetchall()
+        conditions = (
+            self._db.query(models.Condition)
+            .filter_by(game_id=self._game_id)
+            .order_by(models.Condition.id)
+            .all()
+        )
 
         return {
             "words": {
-                w[0]: Word(id=w[0], value=w[1], color=Color(w[2]), selected_at=w[3])
+                w.id: Word(
+                    id=w.id,
+                    value=w.value,
+                    color=Color(w.color),
+                    selected_at=w.selected_at,
+                )
                 for w in active_words
             },
             "hints": [
                 {
-                    "id": h[0],
-                    "word": h[1],
-                    "num": h[2],
-                    "color": Color(h[3]) if h[3] else None,
+                    "id": h.id,
+                    "word": h.hint,
+                    "num": h.num,
+                    "color": Color(h.color) if h.color else None,
                 }
                 for h in hints
             ],
             "conditions": [
-                {"hint_id": t[0], "value": Condition(t[1])} for t in conditions
+                {"hint_id": t.hint_id, "value": Condition(t.condition)}
+                for t in conditions
             ],
             "players": [
-                {"session_id": p[0], "color": Color(p[1]), "role": Role(p[2])}
+                {
+                    "session_id": p.session_id,
+                    "color": Color(p.color),
+                    "role": Role(p.role),
+                }
                 for p in players
             ],
         }
 
     def add_guess(self, word_id: int) -> None:
-        self._con.execute(
-            """
-            INSERT INTO
-                moves (game_id, word_id, selected_at)
-            VALUES (?, ?, strftime('%s','now'))
-        """,
-            (self._game_id, word_id),
+        self._db.add(
+            models.Move(
+                game_id=self._game_id, word_id=word_id, selected_at=int(time.time())
+            )
         )
 
     def add_hint(self, word: str, num: int, color: Color) -> None:
-        self._con.execute(
-            """
-            INSERT INTO
-                hints (game_id, hint, num, color, created_at)
-            VALUES (?, ?, ?, ?, strftime('%s','now'))
-        """,
-            (self._game_id, word, num, color.value),
+        self._db.add(
+            models.Move(
+                game_id=self._game_id,
+                hint=word,
+                num=num,
+                color=color.value,
+                created_at=int(time.time()),
+            )
         )
 
     def add_condition(self, condition: Condition) -> None:
-        self._con.execute(
-            """
-            INSERT INTO
-                conditions (game_id, hint_id, condition, created_at)
-            SELECT
-                game_id,
-                id AS hint_id,
-                ? AS condition,
-                strftime('%s','now') AS created_at
-            FROM hints
-            WHERE game_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-        """,
-            (condition.value, self._game_id),
+        self._db.add(
+            models.Condition(
+                game_id=self._game_id,
+                condition=condition.value,
+                created_at=int(time.time()),
+            )
         )
 
     def is_occupied(self, color: Color, role: Role) -> bool:
-        players = self._con.execute(
-            """
-            SELECT session_id
-            FROM players
-            WHERE game_id = ? AND color = ? AND role = ?
-            """,
-            (self._game_id, color.value, role.value),
-        ).fetchone()
-        return bool(players)
+        player_count = (
+            self._db.query(models.Player)
+            .filter_by(game_id=self._game_id, color=color.value, role=role.value)
+            .count()
+        )
+        return player_count > 0
 
     def add_player(self, session_id: str, color: Color, role: Role) -> None:
-        self._con.execute(
-            """
-            INSERT INTO
-                players (game_id, session_id, color, role)
-            VALUES (?, ?, ?, ?)
-        """,
-            (self._game_id, session_id, color.value, role.value),
+        self._db.add(
+            models.Player(
+                game_id=self._game_id,
+                session_id=session_id,
+                color=color.value,
+                role=role.value,
+            )
         )
 
     def has_joined(self, session_id: str) -> bool:
-        players = self._con.execute(
-            """
-            SELECT 1
-            FROM players
-            WHERE game_id = ? AND session_id = ?
-            """,
-            (self._game_id, session_id),
-        ).fetchone()
-        return bool(players)
+        player_count = (
+            self._db.query(models.Player)
+            .filter_by(game_id=self._game_id, session_id=session_id)
+            .count()
+        )
+        return player_count > 0
 
     def remove_player(self, session_id: str) -> None:
-        self._con.execute(
-            """
-            DELETE FROM players
-            WHERE game_id = ? AND session_id = ?
-        """,
-            (self._game_id, session_id),
-        )
+        self._db.query(models.Player).filter_by(
+            game_id=self._game_id, session_id=session_id
+        ).delete()
 
     def get_active_session_id(self) -> str:
         game_condition = Condition(
-            self._con.execute(
-                """
-                SELECT condition
-                FROM conditions
-                WHERE game_id = ?
-                ORDER BY id DESC
-                LIMIT 1
-                """,
-                (self._game_id,),
-            ).fetchone()[0]
+            self._db.query(models.Condition)
+            .filter_by(game_id=self._game_id)
+            .order_by(desc(models.Condition.id))
+            .first()
+            .condition
         )
 
-        active_session_id = self._con.execute(
-            """
-            SELECT session_id
-            FROM players
-            WHERE game_id = ? AND color = ? AND role = ?
-            LIMIT 1
-            """,
-            (self._game_id, game_condition.color.value, game_condition.role.value),
-        ).fetchone()
+        active_player = (
+            self._db.query(models.Player)
+            .filter_by(
+                game_id=self._game_id,
+                color=game_condition.color.value,
+                role=game_condition.role.value,
+            )
+            .first()
+        )
 
-        if not active_session_id:
+        if not active_player:
             raise Exception("Could not determine active player (maybe there is none?)")
 
-        return active_session_id[0]
+        return active_player.session_id
 
     def commit(self) -> None:
-        self._con.commit()
+        self._db.commit()
 
 
-class SQLiteGameManager:
+class SQLAlchemyGameManager:
     def __init__(
         self,
-        con: Connection,
+        db: Session,
         num_blue: int = 9,
         num_red: int = 9,
         num_neutral: int = 9,
         num_assassin: int = 1,
     ):
-        self._con = con
+        self._db = db
         self._word_color_counts = {
             Color.BLUE.value: num_blue,
             Color.RED.value: num_red,
@@ -219,10 +196,7 @@ class SQLiteGameManager:
         }
 
     def exists(self, name: str) -> bool:
-        res = self._con.execute(
-            "SELECT name from games WHERE name = ?", (name,)
-        ).fetchone()
-
+        res = self._db.query(models.Game).filter(models.Game.name == name).first()
         if res:
             return True
         return False
@@ -231,30 +205,21 @@ class SQLiteGameManager:
         game = self._create_game(name, session_id)
         random_words = self._get_random_words()
 
-        active_words = [(game.id, w.id, w.color) for w in random_words]
-        self._con.executemany(
-            "INSERT INTO active_words (game_id, word_id, color) VALUES (?, ?, ?);",
-            active_words,
+        active_words = [
+            models.ActiveWord(game_id=game.id, word_id=w.id, color=w.color)
+            for w in random_words
+        ]
+        self._db.add_all(active_words)
+        self._db.add(
+            models.Condition(
+                hint_id=None, game_id=game.id, condition=Condition.NOT_STARTED.value
+            )
         )
-        self._con.execute(
-            """
-            INSERT INTO
-                conditions (hint_id, game_id, condition, created_at)
-            VALUES (?, ?, ?, strftime('%s','now'))
-                """,
-            (None, game.id, Condition.NOT_STARTED.value),
-        )
-        # add dummy hint for code simplification
-        self._con.execute(
-            """
-            INSERT INTO
-                hints (game_id, hint, num, color, created_at)
-            VALUES (?, ?, ?, ?, strftime('%s', 'now'))
-            """,
-            (game.id, None, None, None),
+        self._db.add(
+            models.Hint(game_id=game.id, hint=None, num=None, color=None, created_at=0)
         )
 
-        self._con.commit()
+        self._db.commit()
         return game
 
     def get(self, name: str) -> Optional[Game]:
@@ -264,19 +229,20 @@ class SQLiteGameManager:
         if self.exists(name):
             raise GameAlreadyExistsException()
 
-        self._con.execute("INSERT INTO games (name) VALUES (?)", (name,))
-        game = self._con.execute(
-            "SELECT id from games WHERE name = ?", (name,)
-        ).fetchone()
-        return Game(session_id, SQLiteGameBackend(game[0], self._con))
+        self._db.add(models.Game(name=name))
+        self._db.commit()
+        game = self._db.query(models.Game).filter(models.Game.name == name).first()
+        return Game(session_id, SQLiteGameBackend(game.id, self._db))
 
     def _get_random_words(self) -> List[Word]:
-        words = self._con.execute(
-            "SELECT id, value from words ORDER BY RANDOM() LIMIT ?",
-            (sum(self._word_color_counts.values()),),
-        ).fetchall()
+        words = (
+            self._db.query(models.Word)
+            .order_by(func.random())
+            .limit(sum(self._word_color_counts.values()))
+            .all()
+        )
         random_colors = self._get_random_colors()
-        return [Word(w[0], w[1], c, None) for w, c in zip(words, random_colors)]
+        return [Word(w.id, w.value, c, None) for w, c in zip(words, random_colors)]
 
     def _get_random_colors(self) -> List[str]:
         ret = list(
