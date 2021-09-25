@@ -56,6 +56,7 @@ def upgrade():
       "conditions",
       sa.Column('id', sa.Integer, primary_key=True),
       sa.Column('game_id', sa.Integer),
+      sa.Column('hint_id', sa.Integer),
       sa.Column('condition', sa.Integer),
       sa.Column('created_at', sa.Integer),
     )
@@ -64,7 +65,7 @@ def upgrade():
       "moves",
       sa.Column('id', sa.Integer, primary_key=True),
       sa.Column('game_id', sa.Integer),
-      sa.Column('word_id', sa.Integer),
+      sa.Column('active_word_id', sa.Integer),
       sa.Column('selected_at', sa.Integer),
     )
 

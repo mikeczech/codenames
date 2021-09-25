@@ -229,12 +229,11 @@ class SpyTurnGameState(GameState):
 
     @check_authorization
     def give_hint(self, word: str, num: int) -> None:
-
-        self.backend.add_hint(word, num, self._color)
+        hint_id = self.backend.add_hint(word, num, self._color)
         if self._color == Color.BLUE:
-            self.backend.add_condition(Condition.BLUE_PLAYER)
+            self.backend.add_condition(Condition.BLUE_PLAYER, hint_id)
         elif self._color == Color.RED:
-            self.backend.add_condition(Condition.RED_PLAYER)
+            self.backend.add_condition(Condition.RED_PLAYER, hint_id)
         else:
             raise StateException("Cannot handle color '{self._color}'")
         self.backend.commit()
@@ -283,7 +282,7 @@ class PlayerTurnGameState(GameState):
             or not game_info["words"][word_id].is_active
         ):
             raise StateException(
-                f"Word with id {id} is either not active or does not exist."
+                f"Word with id {word_id} is either not active or does not exist."
             )
 
         num_blue_words_left, num_red_words_left = self._count_num_words_left(game_info)

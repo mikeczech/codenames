@@ -8,16 +8,16 @@ from codenames.game import (
     GameAlreadyExistsException,
     StateException,
 )
-from codenames.sqlite import SQLiteGameManager, SQLiteGameBackend
+from codenames.sqlite import SQLAlchemyGameManager, SQLAlchemyGameBackend
 
 from utils import create_default_game, add_players
 
 
-class TestSQLiteGameBackend:
-    def test_load(self, db_con):
+class TestSQLAlchemyGameBackend:
+    def test_load(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
 
         # when
         result = backend.load()
@@ -35,14 +35,14 @@ class TestSQLiteGameBackend:
                 8: Word(id=8, value="Point", color=Color.RED, selected_at=None),
             },
             "hints": [{"id": 1, "word": None, "num": None, "color": None}],
-            "conditions": [{"hint_id": None, "value": Condition.NOT_STARTED}],
+            "conditions": [{"value": Condition.NOT_STARTED, "hint_id": None}],
             "players": [],
         }
 
-    def test_guess_word(self, db_con):
+    def test_guess_word(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
 
         # when
         backend.add_guess(1)
@@ -52,10 +52,10 @@ class TestSQLiteGameBackend:
         assert result["words"][1].selected_at
         assert not result["words"][2].selected_at
 
-    def test_add_hints(self, db_con):
+    def test_add_hints(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
 
         # when
         backend.add_hint("myfirsthint", 2, Color.RED)
@@ -70,11 +70,11 @@ class TestSQLiteGameBackend:
         assert result[2]["num"] == 3
         assert result[2]["color"] == Color.BLUE
 
-    def test_add_condition(self, db_con):
+    def test_add_condition(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
+        add_players(db_session)
 
         # when
         backend.add_condition(Condition.BLUE_SPY)
@@ -82,11 +82,11 @@ class TestSQLiteGameBackend:
         # then
         assert backend.load()["conditions"][-1]["value"] == Condition.BLUE_SPY
 
-    def test_has_joined(self, db_con):
+    def test_has_joined(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)  # adds session id A23 but not A34
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
+        add_players(db_session)  # adds session id A23 but not A34
 
         # when
         has_joined = backend.has_joined("A23")
@@ -96,10 +96,10 @@ class TestSQLiteGameBackend:
         assert has_joined
         assert not has_not_joined
 
-    def test_add_players(self, db_con):
+    def test_add_players(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
 
         # when
         backend.add_player("ABDB23", Color.RED, Role.PLAYER)
@@ -130,11 +130,11 @@ class TestSQLiteGameBackend:
             "role": Role.SPYMASTER,
         }
 
-    def test_remove_players(self, db_con):
+    def test_remove_players(self, db_session):
         # given
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
+        add_players(db_session)
 
         # when
         backend.remove_player("A100")
@@ -145,10 +145,10 @@ class TestSQLiteGameBackend:
         assert "A100" not in [r["session_id"] for r in result]
 
 
-class TestSQLiteGameManager:
-    def test_create_random_game(self, db_con):
+class TestSQLAlchemyGameManager:
+    def test_create_random_game(self, db_session):
         # given
-        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
 
         # when
         game = manager.create_random("my_game", "mysessionid")
@@ -156,9 +156,9 @@ class TestSQLiteGameManager:
         # then
         assert game.id == 1
 
-    def test_random_game_state_is_valid(self, db_con):
+    def test_random_game_state_is_valid(self, db_session):
         # given
-        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
 
         # when
         info = manager.create_random("my_game", "mysessionid").load_state().get_info()
@@ -167,9 +167,9 @@ class TestSQLiteGameManager:
         assert len(info["words"]) == 7
         assert info["conditions"][-1]["value"] == Condition.NOT_STARTED
 
-    def test_initially_there_is_no_game(self, db_con):
+    def test_initially_there_is_no_game(self, db_session):
         # given
-        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
 
         # when
         result = manager.exists("my_game")
@@ -177,9 +177,9 @@ class TestSQLiteGameManager:
         # then
         assert not result
 
-    def test_a_created_game_exists(self, db_con):
+    def test_a_created_game_exists(self, db_session):
         # given
-        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
         manager.create_random("my_game", "mysessionid")
 
         # when
@@ -188,9 +188,9 @@ class TestSQLiteGameManager:
         # then
         assert result
 
-    def test_creating_duplicates_fails(self, db_con):
+    def test_creating_duplicates_fails(self, db_session):
         # given
-        manager = SQLiteGameManager(db_con, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
 
         # when
         manager.create_random("my_game", "mysessionid")

@@ -29,45 +29,21 @@ class SQLAlchemyGameBackend(GameBackend):
         return self._game_id
 
     def load(self) -> Dict[str, Any]:
-        active_words = (
-            self._db.query(models.ActiveWord)
-            .join(
-                models.Word, models.Word.id == models.ActiveWord.word_id, isouter=True
-            )
-            .join(
-                models.Move,
-                models.Move.game_id == models.ActiveWord.game_id
-                and models.Move.word_id == models.ActiveWord.word_id,
-            )
-            .filter_by(game_id=self._game_id)
-            .all()
-        )
-
-        hints = (
-            self._db.query(models.Hint)
-            .filter_by(game_id=self._game_id)
-            .order_by(models.Hint.id)
-            .all()
-        )
-
-        players = self._db.query(models.Player).filter_by(game_id=self._game_id).all()
-
-        conditions = (
-            self._db.query(models.Condition)
-            .filter_by(game_id=self._game_id)
-            .order_by(models.Condition.id)
-            .all()
+        game = (
+            self._db.query(models.Game)
+            .filter_by(id=self._game_id)
+            .first()
         )
 
         return {
             "words": {
                 w.id: Word(
                     id=w.id,
-                    value=w.value,
+                    value=w.word.value,
                     color=Color(w.color),
-                    selected_at=w.selected_at,
+                    selected_at=w.move.selected_at if w.move else None,
                 )
-                for w in active_words
+                for w in game.active_words
             },
             "hints": [
                 {
@@ -76,11 +52,11 @@ class SQLAlchemyGameBackend(GameBackend):
                     "num": h.num,
                     "color": Color(h.color) if h.color else None,
                 }
-                for h in hints
+                for h in game.hints
             ],
             "conditions": [
-                {"hint_id": t.hint_id, "value": Condition(t.condition)}
-                for t in conditions
+                {"value": Condition(t.condition), "hint_id": t.hint_id}
+                for t in game.conditions
             ],
             "players": [
                 {
@@ -88,32 +64,35 @@ class SQLAlchemyGameBackend(GameBackend):
                     "color": Color(p.color),
                     "role": Role(p.role),
                 }
-                for p in players
+                for p in game.players
             ],
         }
 
     def add_guess(self, word_id: int) -> None:
         self._db.add(
             models.Move(
-                game_id=self._game_id, word_id=word_id, selected_at=int(time.time())
+                game_id=self._game_id, active_word_id=word_id, selected_at=int(time.time())
             )
         )
 
-    def add_hint(self, word: str, num: int, color: Color) -> None:
-        self._db.add(
-            models.Move(
+    def add_hint(self, word: str, num: int, color: Color) -> int:
+        hint = models.Hint(
                 game_id=self._game_id,
                 hint=word,
                 num=num,
                 color=color.value,
                 created_at=int(time.time()),
-            )
         )
+        self._db.add(hint)
+        self._db.flush()
+        self._db.refresh(hint)
+        return hint.id
 
-    def add_condition(self, condition: Condition) -> None:
+    def add_condition(self, condition: Condition, hint_id: Optional[int] = None) -> None:
         self._db.add(
             models.Condition(
                 game_id=self._game_id,
+                hint_id=hint_id,
                 condition=condition.value,
                 created_at=int(time.time()),
             )
@@ -212,7 +191,7 @@ class SQLAlchemyGameManager:
         self._db.add_all(active_words)
         self._db.add(
             models.Condition(
-                hint_id=None, game_id=game.id, condition=Condition.NOT_STARTED.value
+                game_id=game.id, condition=Condition.NOT_STARTED.value
             )
         )
         self._db.add(
@@ -232,7 +211,7 @@ class SQLAlchemyGameManager:
         self._db.add(models.Game(name=name))
         self._db.commit()
         game = self._db.query(models.Game).filter(models.Game.name == name).first()
-        return Game(session_id, SQLiteGameBackend(game.id, self._db))
+        return Game(session_id, SQLAlchemyGameBackend(game.id, self._db))
 
     def _get_random_words(self) -> List[Word]:
         words = (

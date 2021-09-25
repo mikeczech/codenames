@@ -13,15 +13,15 @@ from codenames.game import (
     SpyTurnGameState,
     StateException,
 )
-from codenames.sqlite import SQLiteGameBackend
+from codenames.sqlite import SQLAlchemyGameBackend
 from utils import create_default_game, add_players
 
 
 class TestNotStartedGameState:
     @fixture
-    def backend(self, db_con):
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
+    def backend(self, db_session):
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
         return backend
 
     @fixture
@@ -56,9 +56,9 @@ class TestNotStartedGameState:
         with pytest.raises(StateException):
             not_started_state.start_game()
 
-    def test_start_game_foo(self, db_con, not_started_state):
+    def test_start_game_foo(self, db_session, not_started_state):
         # given
-        add_players(db_con)
+        add_players(db_session)
 
         # when
         pre_condition = not_started_state.get_info()["conditions"][-1]["value"]
@@ -69,9 +69,9 @@ class TestNotStartedGameState:
         assert pre_condition == Condition.NOT_STARTED
         assert post_condition == Condition.BLUE_SPY
 
-    def test_cannot_start_game_twice(self, db_con, not_started_state):
+    def test_cannot_start_game_twice(self, db_session, not_started_state):
         # given
-        add_players(db_con)
+        add_players(db_session)
 
         # when / then
         with pytest.raises(StateException):
@@ -81,10 +81,10 @@ class TestNotStartedGameState:
 
 class TestSpyTurnGameState:
     @fixture
-    def backend(self, db_con):
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)
+    def backend(self, db_session):
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
+        add_players(db_session)
         return backend
 
     @fixture
@@ -146,10 +146,10 @@ class TestSpyTurnGameState:
 
 class TestPlayerTurnGameState:
     @fixture
-    def backend(self, db_con):
-        backend = SQLiteGameBackend(42, db_con)
-        create_default_game(db_con)
-        add_players(db_con)
+    def backend(self, db_session):
+        backend = SQLAlchemyGameBackend(42, db_session)
+        create_default_game(db_session)
+        add_players(db_session)
         return backend
 
     @fixture
@@ -190,9 +190,10 @@ class TestPlayerTurnGameState:
 
     def test_exceeding_number_of_guesses_ends_turn(self, blue_player_turn_state):
         # when
-        blue_player_turn_state.guess(2)
-        blue_player_turn_state.guess(7)
         game_info = blue_player_turn_state.get_info()
+        blue_player_turn_state.guess(2)
+        game_info = blue_player_turn_state.get_info()
+        blue_player_turn_state.guess(7)
 
         # then
         assert game_info["conditions"][-1]["value"] == Condition.RED_SPY

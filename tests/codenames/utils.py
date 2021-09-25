@@ -4,59 +4,52 @@ from codenames.game import (
     Condition,
 )
 
+from codenames import models
 
-def create_default_game(db_con):
+
+def create_default_game(db):
     """ Adds a simple game to the database. """
+    games = [models.Game(id=42, name="mygame")]
     active_words = [
-        (42, 1, Color.RED.value),
-        (42, 2, Color.BLUE.value),
-        (42, 3, Color.RED.value),
-        (42, 4, Color.BLUE.value),
-        (42, 5, Color.NEUTRAL.value),
-        (42, 6, Color.ASSASSIN.value),
-        (42, 7, Color.BLUE.value),
-        (42, 8, Color.RED.value),
+        models.ActiveWord(game_id=42, word_id=1, color=Color.RED.value),
+        models.ActiveWord(game_id=42, word_id=2, color=Color.BLUE.value),
+        models.ActiveWord(game_id=42, word_id=3, color=Color.RED.value),
+        models.ActiveWord(game_id=42, word_id=4, color=Color.BLUE.value),
+        models.ActiveWord(game_id=42, word_id=5, color=Color.NEUTRAL.value),
+        models.ActiveWord(game_id=42, word_id=6, color=Color.ASSASSIN.value),
+        models.ActiveWord(game_id=42, word_id=7, color=Color.BLUE.value),
+        models.ActiveWord(game_id=42, word_id=8, color=Color.RED.value),
     ]
-    conditions = [(42, None, Condition.NOT_STARTED.value)]
-    hints = [(42, None, None, None)]
-    db_con.executemany(
-        """
-        INSERT INTO 
-            active_words (game_id, word_id, color)
-        VALUES (?, ?, ?)
-    """,
-        active_words,
-    )
-    db_con.executemany(
-        """
-        INSERT INTO
-            conditions (game_id, hint_id, condition, created_at)
-        VALUES (?, ?, ?, strftime('%s', 'now'))
-    """,
-        conditions,
-    )
-    db_con.executemany(
-        """
-        INSERT INTO
-            hints (game_id, hint, num, color, created_at)
-        VALUES (?, ?, ?, ?, strftime('%s', 'now'))
-    """,
-        hints,
-    )
-    db_con.commit()
+    conditions = [models.Condition(game_id=42, condition=Condition.NOT_STARTED.value)]
+    hints = [models.Hint(game_id=42)]
+
+    db.add_all(games)
+    db.add_all(active_words)
+    db.add_all(conditions)
+    db.add_all(hints)
+    db.commit()
 
 
-def add_players(db_con):
+def add_players(db):
     players = [
-        (42, "A23", Color.RED.value, Role.PLAYER.value),
-        (42, "A22", Color.RED.value, Role.SPYMASTER.value),
-        (42, "A21", Color.BLUE.value, Role.PLAYER.value),
-        (42, "A100", Color.BLUE.value, Role.SPYMASTER.value),
+        models.Player(
+            game_id=42, session_id="A23", color=Color.RED.value, role=Role.PLAYER.value
+        ),
+        models.Player(
+            game_id=42,
+            session_id="A22",
+            color=Color.RED.value,
+            role=Role.SPYMASTER.value,
+        ),
+        models.Player(
+            game_id=42, session_id="A21", color=Color.BLUE.value, role=Role.PLAYER.value
+        ),
+        models.Player(
+            game_id=42,
+            session_id="A100",
+            color=Color.BLUE.value,
+            role=Role.SPYMASTER.value,
+        ),
     ]
-    db_con.executemany(
-        """
-        INSERT INTO players (game_id, session_id, color, role) VALUES (?, ?, ?, ?)
-    """,
-        players,
-    )
-    db_con.commit()
+    db.add_all(players)
+    db.commit()
