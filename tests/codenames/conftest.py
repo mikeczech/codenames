@@ -22,7 +22,7 @@ def db_session():
     alembic_config = AlembicConfig("alembic.ini")
     alembic_config.set_main_option("sqlalchemy.url", "sqlite:///:memory:")
     with engine.begin() as connection:
-        alembic_config.attributes['connection'] = connection
+        alembic_config.attributes["connection"] = connection
         alembic_upgrade(alembic_config, "head")
     print("\n----- RUN ALEMBIC MIGRATION\n")
     yield _db["session_factory"]()

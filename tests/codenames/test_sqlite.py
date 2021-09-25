@@ -148,7 +148,9 @@ class TestSQLAlchemyGameBackend:
 class TestSQLAlchemyGameManager:
     def test_create_random_game(self, db_session):
         # given
-        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(
+            db_session, num_blue=2, num_red=2, num_neutral=2
+        )
 
         # when
         game = manager.create_random("my_game", "mysessionid")
@@ -158,7 +160,9 @@ class TestSQLAlchemyGameManager:
 
     def test_random_game_state_is_valid(self, db_session):
         # given
-        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(
+            db_session, num_blue=2, num_red=2, num_neutral=2
+        )
 
         # when
         info = manager.create_random("my_game", "mysessionid").load_state().get_info()
@@ -169,7 +173,9 @@ class TestSQLAlchemyGameManager:
 
     def test_initially_there_is_no_game(self, db_session):
         # given
-        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(
+            db_session, num_blue=2, num_red=2, num_neutral=2
+        )
 
         # when
         result = manager.exists("my_game")
@@ -179,7 +185,9 @@ class TestSQLAlchemyGameManager:
 
     def test_a_created_game_exists(self, db_session):
         # given
-        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(
+            db_session, num_blue=2, num_red=2, num_neutral=2
+        )
         manager.create_random("my_game", "mysessionid")
 
         # when
@@ -190,7 +198,9 @@ class TestSQLAlchemyGameManager:
 
     def test_creating_duplicates_fails(self, db_session):
         # given
-        manager = SQLAlchemyGameManager(db_session, num_blue=2, num_red=2, num_neutral=2)
+        manager = SQLAlchemyGameManager(
+            db_session, num_blue=2, num_red=2, num_neutral=2
+        )
 
         # when
         manager.create_random("my_game", "mysessionid")

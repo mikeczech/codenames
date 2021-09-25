@@ -29,11 +29,7 @@ class SQLAlchemyGameBackend(GameBackend):
         return self._game_id
 
     def load(self) -> Dict[str, Any]:
-        game = (
-            self._db.query(models.Game)
-            .filter_by(id=self._game_id)
-            .first()
-        )
+        game = self._db.query(models.Game).filter_by(id=self._game_id).first()
 
         return {
             "words": {
@@ -71,24 +67,28 @@ class SQLAlchemyGameBackend(GameBackend):
     def add_guess(self, word_id: int) -> None:
         self._db.add(
             models.Move(
-                game_id=self._game_id, active_word_id=word_id, selected_at=int(time.time())
+                game_id=self._game_id,
+                active_word_id=word_id,
+                selected_at=int(time.time()),
             )
         )
 
     def add_hint(self, word: str, num: int, color: Color) -> int:
         hint = models.Hint(
-                game_id=self._game_id,
-                hint=word,
-                num=num,
-                color=color.value,
-                created_at=int(time.time()),
+            game_id=self._game_id,
+            hint=word,
+            num=num,
+            color=color.value,
+            created_at=int(time.time()),
         )
         self._db.add(hint)
         self._db.flush()
         self._db.refresh(hint)
         return hint.id
 
-    def add_condition(self, condition: Condition, hint_id: Optional[int] = None) -> None:
+    def add_condition(
+        self, condition: Condition, hint_id: Optional[int] = None
+    ) -> None:
         self._db.add(
             models.Condition(
                 game_id=self._game_id,
@@ -190,9 +190,7 @@ class SQLAlchemyGameManager:
         ]
         self._db.add_all(active_words)
         self._db.add(
-            models.Condition(
-                game_id=game.id, condition=Condition.NOT_STARTED.value
-            )
+            models.Condition(game_id=game.id, condition=Condition.NOT_STARTED.value)
         )
         self._db.add(
             models.Hint(game_id=game.id, hint=None, num=None, color=None, created_at=0)
