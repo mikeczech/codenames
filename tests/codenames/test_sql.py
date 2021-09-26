@@ -8,7 +8,7 @@ from codenames.game import (
     GameAlreadyExistsException,
     StateException,
 )
-from codenames.sqlite import SQLAlchemyGameManager, SQLAlchemyGameBackend
+from codenames.sql import SQLAlchemyGameManager, SQLAlchemyGameBackend
 
 from utils import create_default_game, add_players
 

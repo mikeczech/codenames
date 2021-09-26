@@ -11,7 +11,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 from codenames import models
-from codenames.sqlite import SQLAlchemyGameManager
+from codenames.sql import SQLAlchemyGameManager
 
 m = SQLAlchemyGameManager(db=SessionLocal())
 m.create_random("foo", "A42")

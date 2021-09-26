@@ -13,7 +13,7 @@ from codenames.game import (
     SpyTurnGameState,
     StateException,
 )
-from codenames.sqlite import SQLAlchemyGameBackend
+from codenames.sql import SQLAlchemyGameBackend
 from utils import create_default_game, add_players
 
 
