@@ -154,8 +154,8 @@ class TestPlayerTurnGameState:
 
     @fixture
     def blue_player_turn_state(self, backend):
-        backend.add_hint("myhint", 1, Color.BLUE)
-        backend.add_condition(Condition.BLUE_PLAYER)
+        latest_hint_id = backend.add_hint("myhint", 1, Color.BLUE)
+        backend.add_condition(Condition.BLUE_PLAYER, latest_hint_id)
         return PlayerTurnGameState("A21", backend, Color.BLUE)
 
     def test_invalid_invocations(self, blue_player_turn_state):
@@ -190,10 +190,9 @@ class TestPlayerTurnGameState:
 
     def test_exceeding_number_of_guesses_ends_turn(self, blue_player_turn_state):
         # when
-        game_info = blue_player_turn_state.get_info()
         blue_player_turn_state.guess(2)
-        game_info = blue_player_turn_state.get_info()
         blue_player_turn_state.guess(7)
+        game_info = blue_player_turn_state.get_info()
 
         # then
         assert game_info["conditions"][-1]["value"] == Condition.RED_SPY

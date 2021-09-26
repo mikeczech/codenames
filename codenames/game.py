@@ -293,6 +293,7 @@ class PlayerTurnGameState(GameState):
             self.end_turn()
         else:
             self.backend.add_guess(word_id)
+            latest_hint_id = game_info["hints"][-1]["id"]
 
             # determine next game condition
             if guessed_color == Color.NEUTRAL:
@@ -311,12 +312,12 @@ class PlayerTurnGameState(GameState):
                 if num_blue_words_left == 1:
                     self.backend.add_condition(Condition.BLUE_WINS)
                 else:
-                    self.backend.add_condition(Condition.BLUE_PLAYER)
+                    self.backend.add_condition(Condition.BLUE_PLAYER, latest_hint_id)
             elif self._color == Color.RED and guessed_color == Color.RED:
                 if num_red_words_left == 1:
                     self.backend.add_condition(Condition.RED_WINS)
                 else:
-                    self.backend.add_condition(Condition.RED_PLAYER)
+                    self.backend.add_condition(Condition.RED_PLAYER, latest_hint_id)
             elif self._color == Color.BLUE and guessed_color == Color.ASSASSIN:
                 self.backend.add_condition(Condition.RED_WINS)
             elif self._color == Color.RED and guessed_color == Color.ASSASSIN:
@@ -328,6 +329,7 @@ class PlayerTurnGameState(GameState):
 
     @check_authorization
     def end_turn(self, do_commit: bool = True) -> None:
+        game_info = self.get_info()
         if self._color == Color.BLUE:
             self.backend.add_condition(Condition.RED_SPY)
         elif self._color == Color.RED:
