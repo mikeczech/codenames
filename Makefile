@@ -21,4 +21,5 @@ run-jupyter:
 	poetry run jupyter lab
 
 init-db:
+	mkdir -p instance/
 	poetry run alembic upgrade head
