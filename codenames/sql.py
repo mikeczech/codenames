@@ -64,6 +64,13 @@ class SQLAlchemyGameBackend(GameBackend):
             ],
         }
 
+    def read_active_words(self):
+        return (
+            self._db.query(models.ActiveWord)
+            .filter(models.ActiveWord.game_id == self._game_id)
+            .all()
+        )
+
     def add_guess(self, word_id: int) -> None:
         self._db.add(
             models.Move(
@@ -71,6 +78,13 @@ class SQLAlchemyGameBackend(GameBackend):
                 active_word_id=word_id,
                 selected_at=int(time.time()),
             )
+        )
+
+    def read_conditions(self):
+        return (
+            self._db.query(models.Condition)
+            .filter(models.Condition.game_id == self._game_id)
+            .all()
         )
 
     def add_hint(self, word: str, num: int, color: Color) -> int:
@@ -85,6 +99,13 @@ class SQLAlchemyGameBackend(GameBackend):
         self._db.flush()
         self._db.refresh(hint)
         return hint.id
+
+    def read_hints(self):
+        return (
+            self._db.query(models.Hint)
+            .filter(models.Hint.game_id == self._game_id)
+            .all()
+        )
 
     def add_condition(
         self, condition: Condition, hint_id: Optional[int] = None
@@ -114,6 +135,13 @@ class SQLAlchemyGameBackend(GameBackend):
                 color=color.value,
                 role=role.value,
             )
+        )
+
+    def read_players(self):
+        return (
+            self._db.query(models.Player)
+            .filter(models.Player.game_id == self._game_id)
+            .all()
         )
 
     def has_joined(self, session_id: str) -> bool:
