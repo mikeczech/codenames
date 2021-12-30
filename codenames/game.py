@@ -243,7 +243,7 @@ class SpyTurnGameState(GameState):
         elif self._color == Color.RED:
             self.backend.add_condition(Condition.RED_PLAYER, hint_id)
         else:
-            raise StateException("Cannot handle color '{self._color}'")
+            raise StateException(f"Cannot handle color '{self._color}'")
         self.backend.commit()
 
 
