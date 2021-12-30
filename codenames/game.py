@@ -125,8 +125,14 @@ class RoleOccupiedException(Exception):
         super().__init__()
 
 
+class InvalidColorRoleCombination(Exception):
+    def __init__(self):
+        super().__init__()
+
+
 class GameAlreadyExistsException(Exception):
-    pass
+    def __init__(self):
+        super().__init__()
 
 
 def check_authorization(f):
@@ -191,6 +197,8 @@ class NotStartedGameState(GameState):
         self.backend.commit()
 
     def join(self, color: Color, role: Role) -> None:
+        if color not in [color.BLUE, color.RED]:
+            raise InvalidColorRoleCombination()
         if self.backend.is_occupied(color, role):
             raise RoleOccupiedException()
         if self.backend.has_joined(self._session_id):

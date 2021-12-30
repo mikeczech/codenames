@@ -10,6 +10,7 @@ from codenames.game import (
     PlayerTurnGameState,
     Role,
     RoleOccupiedException,
+    InvalidColorRoleCombination,
     SpyTurnGameState,
     StateException,
 )
@@ -44,6 +45,16 @@ class TestNotStartedGameState:
         with pytest.raises(AlreadyJoinedException):
             not_started_state.join(Color.RED, Role.PLAYER)
             not_started_state.join(Color.BLUE, Role.PLAYER)
+
+    def test_cannot_join_as_neutral_color(self, not_started_state):
+        # when / then
+        with pytest.raises(InvalidColorRoleCombination):
+            not_started_state.join(Color.NEUTRAL, Role.PLAYER)
+
+    def test_cannot_join_as_assassin_color(self, not_started_state):
+        # when / then
+        with pytest.raises(InvalidColorRoleCombination):
+            not_started_state.join(Color.ASSASSIN, Role.PLAYER)
 
     def test_cannot_join_already_occupied_role(self, not_started_state):
         # when / then

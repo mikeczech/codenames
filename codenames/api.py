@@ -10,6 +10,8 @@ from codenames.game import (
     Role,
     RoleOccupiedException,
     AlreadyJoinedException,
+    GameAlreadyExistsException,
+    StateException,
 )
 from codenames.database import SessionLocal, engine
 
@@ -58,7 +60,7 @@ def read_conditions(backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
     return backend.read_conditions()
 
 
-@app.post("/games/{game_id}/join")
+@app.put("/games/{game_id}/join")
 def join_game(
     color_id: int = Form(...),
     role_id: int = Form(...),
@@ -70,21 +72,51 @@ def join_game(
     current_game_state = Game(session_id, backend).load_state()
     try:
         current_game_state.join(Color(color_id), Role(role_id))
-    except RoleOccupiedException:
+    except RoleOccupiedException as ex:
         raise HTTPException(
             status_code=403,
-            detail="The given color/role is already occupied by another player",
+            detail="This color and role is already occupied by another player",
         )
-    except AlreadyJoinedException:
+    except AlreadyJoinedException as ex:
         raise HTTPException(
-            status_code=403, detail="It seems you already joined the game"
+            status_code=403, detail="This user has already joined the game"
+        )
+    except InvalidColorRoleCombination as ex:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Invalid color / role combination: color = {color_id}, role = {role_id}",
+        )
+    except StateException as ex:
+        raise HTTPException(
+            status_code=400,
+            detail=ex.message,
         )
     except Exception:
         raise HTTPException(
             status_code=400,
             detail="Cannot join the game (maybe the game is already running)",
         )
-    return backend.read_conditions()
+    return {
+        "message": f"Successfully joined the game {backend.game_id} with color {color_id} and role {role_id}."
+    }
+
+
+@app.put("/games/{game_id}/start")
+def start_game(
+    session_id: Optional[str] = Cookie(None),
+    backend: SQLAlchemyGameBackend = Depends(get_game_backend),
+):
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="Could not determine session id")
+    current_game_state = Game(session_id, backend).load_state()
+    try:
+        current_game_state.start_game()
+    except StateException as ex:
+        raise HTTPException(status_code=403, detail=ex.message)
+    except Exception as ex:
+        raise HTTPException(status_code=400, detail="Cannot start the game")
+
+    return {"message": "Successfully started the game"}
 
 
 @app.post("/games/")
@@ -93,5 +125,11 @@ def create_game(
     session_id: Optional[str] = Cookie(None),
     game_manager: SQLAlchemyGameManager = Depends(get_game_manager),
 ):
-    game_manager.create_random(name, session_id)
-    return "hello"
+    try:
+        game_manager.create_random(name, session_id)
+    except GameAlreadyExistsException as ex:
+        raise HTTPException(status_code=403, detail=f"The game {name} already exists")
+    except Exception as ex:
+        raise HTTPException(status_code=400, detail="Could not create the game")
+
+    return {"message": f"Successfully created the game '{name}'."}
