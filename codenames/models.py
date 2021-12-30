@@ -4,6 +4,11 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+class AlembicVersion(Base):
+    __tablename__ = "alembic_version"
+    id = Column(Integer, primary_key=True, index=True)
+    version_num = Column(String)
+
 
 class Game(Base):
     __tablename__ = "games"

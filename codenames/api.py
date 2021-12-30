@@ -197,10 +197,13 @@ def create_game(
     game_manager: SQLAlchemyGameManager = Depends(get_game_manager),
 ):
     try:
-        game_manager.create_random(name, session_id)
+        game = game_manager.create_random(name, session_id, random_seed=42)
     except GameAlreadyExistsException as ex:
         raise HTTPException(status_code=403, detail=f"The game {name} already exists")
     except Exception as ex:
         raise HTTPException(status_code=400, detail="Could not create the game")
 
-    return {"message": f"Successfully created the game '{name}'."}
+    return {
+        "message": f"Successfully created the game '{name}'.",
+        "game_id": game.id,
+    }

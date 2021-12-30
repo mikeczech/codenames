@@ -208,7 +208,9 @@ class SQLAlchemyGameManager:
             return True
         return False
 
-    def create_random(self, name: str, session_id: str) -> Game:
+    def create_random(self, name: str, session_id: str, random_seed: int = None) -> Game:
+        random.seed(random_seed)
+
         game = self._create_game(name, session_id)
         random_words = self._get_random_words()
 
@@ -240,12 +242,8 @@ class SQLAlchemyGameManager:
         return Game(session_id, SQLAlchemyGameBackend(game.id, self._db))
 
     def _get_random_words(self) -> List[Word]:
-        words = (
-            self._db.query(models.Word)
-            .order_by(func.random())
-            .limit(sum(self._word_color_counts.values()))
-            .all()
-        )
+        all_words = self._db.query(models.Word).all()
+        words = random.sample(all_words, sum(self._word_color_counts.values()))
         random_colors = self._get_random_colors()
         return [Word(w.id, w.value, c, None) for w, c in zip(words, random_colors)]
 
