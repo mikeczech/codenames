@@ -21,12 +21,24 @@ class Word(BaseModel):
         orm_mode = True
 
 
+class Move(BaseModel):
+    id: int
+    game_id: int
+    word_id: int
+    selected_at: int
+
+    class Config:
+        orm_mode = True
+
+
 class ActiveWord(BaseModel):
+    id: int
     game_id: int
     word_id: int
     color: int
 
     word: Word
+    move: Optional[Move] = None
 
     class Config:
         orm_mode = True
@@ -37,16 +49,6 @@ class Condition(BaseModel):
     game_id: int
     condition: int
     created_at: Optional[int]
-
-    class Config:
-        orm_mode = True
-
-
-class Move(BaseModel):
-    id: int
-    game_id: int
-    word_id: int
-    selected_at: int
 
     class Config:
         orm_mode = True

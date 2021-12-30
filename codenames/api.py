@@ -43,7 +43,13 @@ def get_game_backend(game_id: int):
 @app.get("/games/{game_id}/words")
 def read_active_words(backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
     return [
-        {"color": w.color, "word": w.word.value} for w in backend.read_active_words()
+        {
+            "color": w.color,
+            "word": w.word.value,
+            "id": w.id,
+            "is_active": False if w.move else True,
+        }
+        for w in backend.read_active_words()
     ]
 
 
@@ -141,6 +147,47 @@ def give_hint(
         raise HTTPException(status_code=400, detail="Cannot give a hint")
 
     return {"message": f"Successfully given the hint '{word}' with num = {num}"}
+
+
+@app.put("/games/{game_id}/end_turn")
+def end_turn(
+    session_id: Optional[str] = Cookie(None),
+    backend: SQLAlchemyGameBackend = Depends(get_game_backend),
+):
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="Could not determine session id")
+    current_game_state = Game(session_id, backend).load_state()
+    try:
+        current_game_state.end_turn()
+    except AuthorizationException as ex:
+        raise HTTPException(status_code=401, detail=ex.message)
+    except StateException as ex:
+        raise HTTPException(status_code=403, detail=ex.message)
+    except Exception as ex:
+        raise HTTPException(status_code=400, detail="Cannot end turn")
+
+    return {"message": f"Successfully ended the turn"}
+
+
+@app.put("/games/{game_id}/guess")
+def guess(
+    word_id: int = Form(...),
+    session_id: Optional[str] = Cookie(None),
+    backend: SQLAlchemyGameBackend = Depends(get_game_backend),
+):
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="Could not determine session id")
+    current_game_state = Game(session_id, backend).load_state()
+    try:
+        current_game_state.guess(word_id)
+    except AuthorizationException as ex:
+        raise HTTPException(status_code=401, detail=ex.message)
+    except StateException as ex:
+        raise HTTPException(status_code=403, detail=ex.message)
+    except Exception as ex:
+        raise HTTPException(status_code=400, detail="Cannot give a hint")
+
+    return {"message": f"Successfully guessed word '{word_id}'"}
 
 
 @app.post("/games/")
