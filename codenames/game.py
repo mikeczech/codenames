@@ -135,11 +135,21 @@ class GameAlreadyExistsException(Exception):
         super().__init__()
 
 
+class AuthorizationException(Exception):
+    def __init__(self, message):
+        super().__init__()
+        self._message = message
+
+    @property
+    def message(self):
+        return self._message
+
+
 def check_authorization(f):
     def wrapper(*args, **kwargs):
         active_session_id = args[0].backend.get_active_session_id()
         if active_session_id != args[0].session_id:
-            raise Exception("It's not your turn!")
+            raise AuthorizationException("It's not your turn!")
         return f(*args, **kwargs)
 
     return wrapper

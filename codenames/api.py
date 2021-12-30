@@ -11,6 +11,8 @@ from codenames.game import (
     RoleOccupiedException,
     AlreadyJoinedException,
     GameAlreadyExistsException,
+    AuthorizationException,
+    InvalidColorRoleCombination,
     StateException,
 )
 from codenames.database import SessionLocal, engine
@@ -117,6 +119,28 @@ def start_game(
         raise HTTPException(status_code=400, detail="Cannot start the game")
 
     return {"message": "Successfully started the game"}
+
+
+@app.put("/games/{game_id}/give_hint")
+def give_hint(
+    word: str = Form(...),
+    num: int = Form(...),
+    session_id: Optional[str] = Cookie(None),
+    backend: SQLAlchemyGameBackend = Depends(get_game_backend),
+):
+    if session_id is None:
+        raise HTTPException(status_code=401, detail="Could not determine session id")
+    current_game_state = Game(session_id, backend).load_state()
+    try:
+        current_game_state.give_hint(word, num)
+    except AuthorizationException as ex:
+        raise HTTPException(status_code=401, detail=ex.message)
+    except StateException as ex:
+        raise HTTPException(status_code=403, detail=ex.message)
+    except Exception as ex:
+        raise HTTPException(status_code=400, detail="Cannot give a hint")
+
+    return {"message": f"Successfully given the hint '{word}' with num = {num}"}
 
 
 @app.post("/games/")
