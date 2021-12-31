@@ -208,7 +208,9 @@ class SQLAlchemyGameManager:
             return True
         return False
 
-    def create_random(self, name: str, session_id: str, random_seed: int = None) -> Game:
+    def create_random(
+        self, name: str, session_id: str, random_seed: int = None
+    ) -> Game:
         random.seed(random_seed)
 
         game = self._create_game(name, session_id)
