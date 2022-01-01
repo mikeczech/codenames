@@ -66,6 +66,24 @@ class Hint(BaseModel):
         orm_mode = True
 
 
+class GuessCreate(BaseModel):
+    word_id: int
+
+
+class HintCreate(BaseModel):
+    word: str
+    num: int
+
+
+class PlayerCreate(BaseModel):
+    color_id: int
+    role_id: int
+
+
+class GameCreate(BaseModel):
+    name: str
+
+
 class Game(BaseModel):
     id: int
     name: str

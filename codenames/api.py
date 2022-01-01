@@ -70,8 +70,7 @@ def read_conditions(backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
 
 @app.put("/games/{game_id}/join")
 def join_game(
-    color_id: int = Form(...),
-    role_id: int = Form(...),
+    player: schemas.PlayerCreate,
     session_id: Optional[str] = Cookie(None),
     backend: SQLAlchemyGameBackend = Depends(get_game_backend),
 ):
@@ -79,7 +78,7 @@ def join_game(
         raise HTTPException(status_code=401, detail="Could not determine session id")
     current_game_state = Game(session_id, backend).load_state()
     try:
-        current_game_state.join(Color(color_id), Role(role_id))
+        current_game_state.join(Color(player.color_id), Role(player.role_id))
     except RoleOccupiedException as ex:
         raise HTTPException(
             status_code=403,
@@ -92,7 +91,7 @@ def join_game(
     except InvalidColorRoleCombination as ex:
         raise HTTPException(
             status_code=403,
-            detail=f"Invalid color / role combination: color = {color_id}, role = {role_id}",
+            detail=f"Invalid color / role combination: color = {player.color_id}, role = {player.role_id}",
         )
     except StateException as ex:
         raise HTTPException(
@@ -105,7 +104,7 @@ def join_game(
             detail="Cannot join the game (maybe the game is already running)",
         )
     return {
-        "message": f"Successfully joined the game {backend.game_id} with color {color_id} and role {role_id}."
+        "message": f"Successfully joined the game {backend.game_id} with color {player.color_id} and role {player.role_id}."
     }
 
 
@@ -129,8 +128,7 @@ def start_game(
 
 @app.put("/games/{game_id}/give_hint")
 def give_hint(
-    word: str = Form(...),
-    num: int = Form(...),
+    hint: schemas.HintCreate,
     session_id: Optional[str] = Cookie(None),
     backend: SQLAlchemyGameBackend = Depends(get_game_backend),
 ):
@@ -138,7 +136,7 @@ def give_hint(
         raise HTTPException(status_code=401, detail="Could not determine session id")
     current_game_state = Game(session_id, backend).load_state()
     try:
-        current_game_state.give_hint(word, num)
+        current_game_state.give_hint(hint.word, hint.num)
     except AuthorizationException as ex:
         raise HTTPException(status_code=401, detail=ex.message)
     except StateException as ex:
@@ -146,7 +144,9 @@ def give_hint(
     except Exception as ex:
         raise HTTPException(status_code=400, detail="Cannot give a hint")
 
-    return {"message": f"Successfully given the hint '{word}' with num = {num}"}
+    return {
+        "message": f"Successfully given the hint '{hint.word}' with num = {hint.num}"
+    }
 
 
 @app.put("/games/{game_id}/end_turn")
@@ -171,7 +171,7 @@ def end_turn(
 
 @app.put("/games/{game_id}/guess")
 def guess(
-    word_id: int = Form(...),
+    guess: schemas.GuessCreate,
     session_id: Optional[str] = Cookie(None),
     backend: SQLAlchemyGameBackend = Depends(get_game_backend),
 ):
@@ -179,7 +179,7 @@ def guess(
         raise HTTPException(status_code=401, detail="Could not determine session id")
     current_game_state = Game(session_id, backend).load_state()
     try:
-        current_game_state.guess(word_id)
+        current_game_state.guess(guess.word_id)
     except AuthorizationException as ex:
         raise HTTPException(status_code=401, detail=ex.message)
     except StateException as ex:
@@ -187,23 +187,25 @@ def guess(
     except Exception as ex:
         raise HTTPException(status_code=400, detail="Cannot give a hint")
 
-    return {"message": f"Successfully guessed word '{word_id}'"}
+    return {"message": f"Successfully guessed word '{guess.word_id}'"}
 
 
 @app.post("/games/")
 def create_game(
-    name: str = Form(...),
+    game: schemas.GameCreate,
     session_id: Optional[str] = Cookie(None),
     game_manager: SQLAlchemyGameManager = Depends(get_game_manager),
 ):
     try:
-        game = game_manager.create_random(name, session_id, random_seed=42)
+        result = game_manager.create_random(game.name, session_id, random_seed=42)
     except GameAlreadyExistsException as ex:
-        raise HTTPException(status_code=403, detail=f"The game {name} already exists")
+        raise HTTPException(
+            status_code=403, detail=f"The game {game.name} already exists"
+        )
     except Exception as ex:
-        raise HTTPException(status_code=400, detail="Could not create the game")
+        raise HTTPException(status_code=400, detail=f"Could not create the game: {ex}")
 
     return {
-        "message": f"Successfully created the game '{name}'.",
-        "game_id": game.id,
+        "message": f"Successfully created the game '{game.name}'.",
+        "game_id": result.id,
     }

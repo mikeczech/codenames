@@ -60,7 +60,7 @@ def test_db():
 
 def test_game_api(client, test_db):
     # create random game
-    response = client.post("/games/", data={"name": "testgame"})
+    response = client.post("/games/", json={"name": "testgame"})
     assert response.status_code == 200, response.text
     game_id = response.json()["game_id"]
 
@@ -85,7 +85,7 @@ def test_game_api(client, test_db):
     ]:
         response = client.put(
             f"/games/{game_id}/join",
-            data={"color_id": color.value, "role_id": role.value},
+            json={"color_id": color.value, "role_id": role.value},
             headers={"Cookie": f"session_id={player_id}"},
         )
         assert response.status_code == 200, response.text
@@ -98,7 +98,7 @@ def test_game_api(client, test_db):
     # blue spymaster gives a hint
     response = client.put(
         f"/games/{game_id}/give_hint",
-        data={"word": "myhint", "num": 2},
+        json={"word": "myhint", "num": 2},
         headers={"Cookie": f"session_id=p4"},
     )
     assert response.status_code == 200, response.text
@@ -111,7 +111,7 @@ def test_game_api(client, test_db):
     for word_id in [21, 17, 22]:
         response = client.put(
             f"/games/{game_id}/guess",
-            data={"word_id": word_id},
+            json={"word_id": word_id},
             headers={"Cookie": f"session_id=p3"},
         )
         assert response.status_code == 200, f"'{response.text}', {word_id}"
@@ -119,7 +119,7 @@ def test_game_api(client, test_db):
     # red spymaster gives a hint
     response = client.put(
         f"/games/{game_id}/give_hint",
-        data={"word": "nexthint", "num": 5},
+        json={"word": "nexthint", "num": 5},
         headers={"Cookie": f"session_id=p2"},
     )
     assert response.status_code == 200, response.text
@@ -131,7 +131,7 @@ def test_game_api(client, test_db):
     # one guess and then end turn
     response = client.put(
         f"/games/{game_id}/guess",
-        data={"word_id": 1},
+        json={"word_id": 1},
         headers={"Cookie": f"session_id=p1"},
     )
     assert response.status_code == 200, response.text
@@ -144,7 +144,7 @@ def test_game_api(client, test_db):
     # blue spymaster gives a hint
     response = client.put(
         f"/games/{game_id}/give_hint",
-        data={"word": "nexthint", "num": 5},
+        json={"word": "nexthint", "num": 5},
         headers={"Cookie": f"session_id=p4"},
     )
     assert response.status_code == 200, response.text
@@ -156,7 +156,7 @@ def test_game_api(client, test_db):
     # wrong guess
     response = client.put(
         f"/games/{game_id}/guess",
-        data={"word_id": 10},
+        json={"word_id": 10},
         headers={"Cookie": f"session_id=p3"},
     )
     assert response.status_code == 200, response.text
@@ -164,7 +164,7 @@ def test_game_api(client, test_db):
     # red spymaster gives a hint
     response = client.put(
         f"/games/{game_id}/give_hint",
-        data={"word": "anotherhint", "num": 4},
+        json={"word": "anotherhint", "num": 4},
         headers={"Cookie": f"session_id=p2"},
     )
     assert response.status_code == 200, response.text
@@ -176,7 +176,7 @@ def test_game_api(client, test_db):
     # guess of assassin ends game and blue wins
     response = client.put(
         f"/games/{game_id}/guess",
-        data={"word_id": 8},
+        json={"word_id": 8},
         headers={"Cookie": f"session_id=p1"},
     )
     assert response.status_code == 200, response.text
