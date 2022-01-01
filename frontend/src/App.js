@@ -27,41 +27,47 @@ export default function App() {
 class CreateGameForm extends React.Component {
   constructor(props) {
     super(props)
-    this.state = {gameId: '', created: false}
+    this.state = {gameName: '', created: false, gameId: null}
 
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   handleChange(event) {
-    this.setState({gameId: event.target.value});
+    this.setState({gameName: event.target.value});
   }
 
   handleSubmit(event) {
     (async () => {
-      const rawResponse = await fetch('/api/create', {
+      fetch('/games/', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({gameId: this.state.gameId})
+        body: JSON.stringify({name: this.state.gameName})
+      })
+      .then(response => response.json())
+      .then(json => {
+        this.setState({created: true, gameId: json['game_id']})
+      })
+      .catch(e => {
+        console.log(e)
       });
-      this.setState({created: true})
     })();
     event.preventDefault();
   }
 
   render() {
     if (this.state.created) {
-      return <Redirect to={this.state.gameId} />
+      return <Redirect to={this.state.gameId.toString()} />
     }
 
     return (
       <form onSubmit={this.handleSubmit}>
         <label>
           Name:
-          <input type="text" value={this.state.gameId} onChange={this.handleChange} />
+          <input type="text" value={this.state.gameName} onChange={this.handleChange} />
         </label>
         <input type="submit" value="Submit" />
       </form>
@@ -84,18 +90,32 @@ class Square extends React.Component {
 }
 
 
+function colorIdToClass(colorId) {
+  if(colorId === 1) {
+    return "red";
+  } else if (colorId === 2) {
+    return "blue";
+  } else if (colorId === 3) {
+    return "neutral";
+  } else if (colorId === 4) {
+    return "assassin";
+  }
+  throw new Error("Unknown color id")
+}
+
+
 function Game() {
   const { gameId } = useParams();
   const [words, setWords] = useState(null);
 
   useEffect(() => {
-      fetch(`/api/state?gameId=${gameId}`).then(res => res.json()).then(data => {
+      fetch(`/games/${gameId}/words`).then(res => res.json()).then(data => {
         setWords(data)
       });
   }, []);
 
   function renderSquare(w) {
-    return <li><Square word={w["word"]} colorClass={w["color"]}/></li>
+    return <li><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
   }
 
   if (!words) {
