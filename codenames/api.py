@@ -78,7 +78,9 @@ def join_game(
         raise HTTPException(status_code=401, detail="Could not determine session id")
     current_game_state = Game(session_id, backend).load_state()
     try:
-        current_game_state.join(Color(player.color_id), Role(player.role_id))
+        current_game_state.join(
+            Color(player.color_id), Role(player.role_id), player.name
+        )
     except RoleOccupiedException as ex:
         raise HTTPException(
             status_code=403,

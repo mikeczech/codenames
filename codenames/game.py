@@ -77,7 +77,7 @@ class GameBackend(ABC):
     def add_condition(self, condition: Condition) -> None:
         raise NotImplementedError()
 
-    def add_player(self, session_id: str, color: Color, role: Role) -> None:
+    def add_player(self, session_id: str, color: Color, role: Role, name: str) -> None:
         raise NotImplementedError()
 
     def remove_player(self, session_id: str) -> None:
@@ -174,7 +174,7 @@ class GameState(ABC):
     def start_game(self) -> None:
         raise NotImplementedError()
 
-    def join(self, color: Color, role: Role) -> None:
+    def join(self, color: Color, role: Role, name: str) -> None:
         raise NotImplementedError()
 
     def guess(self, word_id: int) -> None:
@@ -206,14 +206,14 @@ class NotStartedGameState(GameState):
         self.backend.add_condition(Condition.BLUE_SPY)
         self.backend.commit()
 
-    def join(self, color: Color, role: Role) -> None:
+    def join(self, color: Color, role: Role, name: str) -> None:
         if color not in [color.BLUE, color.RED]:
             raise InvalidColorRoleCombination()
         if self.backend.is_occupied(color, role):
             raise RoleOccupiedException()
         if self.backend.has_joined(self._session_id):
             raise AlreadyJoinedException()
-        self.backend.add_player(self._session_id, color, role)
+        self.backend.add_player(self._session_id, color, role, name)
         self.backend.commit()
 
     def guess(self, word_id: int) -> None:
@@ -234,7 +234,7 @@ class SpyTurnGameState(GameState):
     def start_game(self) -> None:
         raise StateException("The game has already started")
 
-    def join(self, color: Color, role: Role) -> None:
+    def join(self, color: Color, role: Role, name: str) -> None:
         raise StateException("The game has already started")
 
     @check_authorization
@@ -284,7 +284,7 @@ class PlayerTurnGameState(GameState):
     def start_game(self) -> None:
         raise StateException("The game has already started")
 
-    def join(self, color: Color, role: Role) -> None:
+    def join(self, color: Color, role: Role, name: str) -> None:
         raise StateException("The game has already started")
 
     @check_authorization

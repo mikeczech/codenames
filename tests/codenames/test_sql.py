@@ -102,10 +102,10 @@ class TestSQLAlchemyGameBackend:
         create_default_game(db_session)
 
         # when
-        backend.add_player("ABDB23", Color.RED, Role.PLAYER)
-        backend.add_player("ABDB55", Color.BLUE, Role.PLAYER)
-        backend.add_player("ABDB33", Color.RED, Role.SPYMASTER)
-        backend.add_player("ABDB67", Color.BLUE, Role.SPYMASTER)
+        backend.add_player("ABDB23", Color.RED, Role.PLAYER, "daniel")
+        backend.add_player("ABDB55", Color.BLUE, Role.PLAYER, "steve")
+        backend.add_player("ABDB33", Color.RED, Role.SPYMASTER, "carina")
+        backend.add_player("ABDB67", Color.BLUE, Role.SPYMASTER, "sarah")
 
         # then
         result = backend.load()["players"]

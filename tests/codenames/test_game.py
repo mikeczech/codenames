@@ -43,24 +43,24 @@ class TestNotStartedGameState:
     def test_cannot_join_twice(self, not_started_state):
         # when / then
         with pytest.raises(AlreadyJoinedException):
-            not_started_state.join(Color.RED, Role.PLAYER)
-            not_started_state.join(Color.BLUE, Role.PLAYER)
+            not_started_state.join(Color.RED, Role.PLAYER, "ben")
+            not_started_state.join(Color.BLUE, Role.PLAYER, "lisa")
 
     def test_cannot_join_as_neutral_color(self, not_started_state):
         # when / then
         with pytest.raises(InvalidColorRoleCombination):
-            not_started_state.join(Color.NEUTRAL, Role.PLAYER)
+            not_started_state.join(Color.NEUTRAL, Role.PLAYER, "bernd")
 
     def test_cannot_join_as_assassin_color(self, not_started_state):
         # when / then
         with pytest.raises(InvalidColorRoleCombination):
-            not_started_state.join(Color.ASSASSIN, Role.PLAYER)
+            not_started_state.join(Color.ASSASSIN, Role.PLAYER, "chuck")
 
     def test_cannot_join_already_occupied_role(self, not_started_state):
         # when / then
         with pytest.raises(RoleOccupiedException):
-            not_started_state.join(Color.RED, Role.PLAYER)
-            not_started_state.join(Color.RED, Role.PLAYER)
+            not_started_state.join(Color.RED, Role.PLAYER, "mike")
+            not_started_state.join(Color.RED, Role.PLAYER, "jan")
 
     def test_start_game_fails_if_any_role_is_still_open(self, not_started_state):
         # when / then
@@ -115,7 +115,7 @@ class TestSpyTurnGameState:
             blue_spy_turn_state.start_game()
 
         with pytest.raises(Exception):
-            blue_spy_turn_state.join(Color.RED, Role.PLAYER)
+            blue_spy_turn_state.join(Color.RED, Role.PLAYER, "andreas")
 
         with pytest.raises(Exception):
             blue_spy_turn_state.end_turn()
@@ -178,7 +178,7 @@ class TestPlayerTurnGameState:
             blue_player_turn_state.start_game()
 
         with pytest.raises(Exception):
-            blue_player_turn_state.join(Color.RED, Role.PLAYER)
+            blue_player_turn_state.join(Color.RED, Role.PLAYER, "judith")
 
     def test_cannot_guess_already_selected_word(self, backend, blue_player_turn_state):
         # when / then

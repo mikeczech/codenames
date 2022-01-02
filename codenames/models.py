@@ -28,6 +28,8 @@ class Player(Base):
     __tablename__ = "players"
 
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+
     game_id = Column(Integer, ForeignKey("games.id"))
     game = relationship("Game", back_populates="players")
 

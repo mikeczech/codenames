@@ -127,13 +127,14 @@ class SQLAlchemyGameBackend(GameBackend):
         )
         return player_count > 0
 
-    def add_player(self, session_id: str, color: Color, role: Role) -> None:
+    def add_player(self, session_id: str, color: Color, role: Role, name: str) -> None:
         self._db.add(
             models.Player(
                 game_id=self._game_id,
                 session_id=session_id,
                 color=color.value,
                 role=role.value,
+                name=name,
             )
         )
 

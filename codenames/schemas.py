@@ -8,6 +8,7 @@ class Player(BaseModel):
     session_id: str
     color: int
     role: int
+    name: str
 
     class Config:
         orm_mode = True
@@ -78,6 +79,7 @@ class HintCreate(BaseModel):
 class PlayerCreate(BaseModel):
     color_id: int
     role_id: int
+    name: str
 
 
 class GameCreate(BaseModel):

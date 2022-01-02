@@ -77,15 +77,15 @@ def test_game_api(client, test_db):
     assert len(response.json()) == 1
 
     # add players
-    for player_id, color, role in [
-        ("p1", Color.RED, Role.PLAYER),
-        ("p2", Color.RED, Role.SPYMASTER),
-        ("p3", Color.BLUE, Role.PLAYER),
-        ("p4", Color.BLUE, Role.SPYMASTER),
+    for player_id, color, role, name in [
+        ("p1", Color.RED, Role.PLAYER, "mike"),
+        ("p2", Color.RED, Role.SPYMASTER, "rita"),
+        ("p3", Color.BLUE, Role.PLAYER, "tim"),
+        ("p4", Color.BLUE, Role.SPYMASTER, "miri"),
     ]:
         response = client.put(
             f"/games/{game_id}/join",
-            json={"color_id": color.value, "role_id": role.value},
+            json={"color_id": color.value, "role_id": role.value, "name": name},
             headers={"Cookie": f"session_id={player_id}"},
         )
         assert response.status_code == 200, response.text

@@ -38,6 +38,7 @@ def upgrade():
     op.create_table(
       "players",
       sa.Column('id', sa.Integer, primary_key=True),
+      sa.Column('name', sa.String(50)),
       sa.Column('game_id', sa.Integer),
       sa.Column('session_id', sa.String(50)),
       sa.Column('color', sa.Integer),
