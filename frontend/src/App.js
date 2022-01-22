@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import Cookies from 'universal-cookie';
 import {
@@ -115,6 +115,7 @@ function Game() {
   const { gameId } = useParams();
   const [words, setWords] = useState(null);
   const [playerName, setPlayerName] = useState(null);
+  const modalDiv = useRef(null)
 
   useEffect(() => {
       fetch(`/games/${gameId}/words`).then(res => res.json()).then(data => {
@@ -154,14 +155,19 @@ function Game() {
     setPlayerName(event.target.value);
   }
 
+  function togglePlayerNameModel() {
+      modalDiv.current.classList.toggle('opacity-0')
+      modalDiv.current.classList.toggle('pointer-events-none')
+  }
+
   if (!words) {
     return <p>Loading state...</p>
   }
 
   return (
     <div>
-      <div className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
-
+      <div ref={modalDiv} className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
+        <div className="modal-overlay absolute w-full h-full bg-gray-900 opacity-80"></div>
         <div className="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
 
           <div className="modal-content py-4 text-left px-6">
@@ -174,7 +180,7 @@ function Game() {
             </form>
 
             <div className="flex justify-end pt-2">
-              <button className="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Ok</button>
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Ok</button>
             </div>
           </div>
 
