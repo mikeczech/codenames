@@ -11,6 +11,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.modal {
+  transition: opacy 0.25s ease;
+}
+
+body.model-active {
+  overflow-x: hidden;
+  overflow-y: visible !important;
+}
+
 .red {
   background: #DC143C;
   color: #FFFFFF;

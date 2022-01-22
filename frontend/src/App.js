@@ -160,13 +160,25 @@ function Game() {
 
   return (
     <div>
-      <div>
-        <form>
-          <label>
-            Username:
-            <input type="text" onChange={e => handlePlayerNameChange(e)} />
-          </label>
-        </form>
+      <div className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
+
+        <div className="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+
+          <div className="modal-content py-4 text-left px-6">
+            <div className="flex justify-between items-center pb-3">
+              <p className="text2xl font-bold">Your Name</p>
+            </div>
+
+            <form>
+              <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" type="text" onChange={e => handlePlayerNameChange(e)} />
+            </form>
+
+            <div className="flex justify-end pt-2">
+              <button className="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Ok</button>
+            </div>
+          </div>
+
+        </div>
       </div>
       <ul className="words">{words.map(w => renderSquare(w))}</ul>
       <form>
