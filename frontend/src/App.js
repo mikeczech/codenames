@@ -73,7 +73,7 @@ class CreateGameForm extends React.Component {
     return (
       <form onSubmit={this.handleSubmit}>
         <label>
-          Name:
+          <h1 className="text-3xl font-medium" >Name:</h1>
           <input type="text" value={this.state.gameName} onChange={this.handleChange} />
         </label>
         <input type="submit" value="Submit" />
@@ -142,7 +142,7 @@ function Game() {
       })
       .then(response => response.json())
       .then(json => {
-        this.setState({created: true, gameId: json['game_id']})
+        this.setState({})
       })
       .catch(e => {
         console.log(e)
@@ -160,12 +160,16 @@ function Game() {
 
   return (
     <div>
+      <div>
+        <form>
+          <label>
+            Username:
+            <input type="text" onChange={e => handlePlayerNameChange(e)} />
+          </label>
+        </form>
+      </div>
       <ul className="words">{words.map(w => renderSquare(w))}</ul>
       <form>
-        <label>
-          Username:
-          <input type="text" onChange={e => handlePlayerNameChange(e)} />
-        </label>
         <div>
           <button onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}>Join as spymaster (red)</button>
         </div>
