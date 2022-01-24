@@ -172,15 +172,21 @@ function Game() {
 
           <div className="modal-content py-4 text-left px-6">
             <div className="flex justify-between items-center pb-3">
-              <p className="text2xl font-bold">Your Name</p>
+              <p className="text2xl font-bold">Join the Game</p>
             </div>
 
             <form>
-              <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" type="text" onChange={e => handlePlayerNameChange(e)} />
+              <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" type="text" placeholder="Your Name" onChange={e => handlePlayerNameChange(e)} />
             </form>
 
-            <div className="flex justify-end pt-2">
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-indigo-500 p-3 rounded-lg text-white hover:bg-indigo-400">Ok</button>
+            <div className="grid grid-cols-2 gap-4">
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
+            </div>
+            <div className="grid grid-cols-1 mt-4 gap-4">
+              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400">Start Game</button>
             </div>
           </div>
 
