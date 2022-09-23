@@ -14,6 +14,8 @@ const BLUE_COLOR_ID = 2;
 const PLAYER_ROLE_ID = 1;
 const SPYMASTER_ROLE_ID = 2;
 
+const evtSource = new EventSource("http://127.0.0.1:8000/updates");
+
 export default function App() {
   return (
     <Router>
@@ -125,6 +127,16 @@ function Game() {
       if(typeof cookies.get("session_id") === 'undefined') {
         cookies.set("session_id", uuidv4(), { path: '/'});
       };
+
+      evtSource.addEventListener("new_message", function (event) {
+        // Logic to handle status updates
+        //setMessage((messages) => [...messages, event.data]);
+        console.log(event)
+      });
+
+      return () => {
+        evtSource.close();
+      };
   }, []);
 
   function renderSquare(w) {
@@ -180,10 +192,10 @@ function Game() {
             </form>
 
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
+              <button onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
+              <button onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
+              <button onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
+              <button onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
             </div>
             <div className="grid grid-cols-1 mt-4 gap-4">
               <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400">Start Game</button>
@@ -193,20 +205,6 @@ function Game() {
         </div>
       </div>
       <ul className="words">{words.map(w => renderSquare(w))}</ul>
-      <form>
-        <div>
-          <button onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}>Join as spymaster (red)</button>
-        </div>
-        <div>
-          <button onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}>Join as agent (red)</button>
-        </div>
-        <div>
-          <button onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}>Join as spymaster (blue)</button>
-        </div>
-        <div>
-          <button onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}>Join as agend (blue)</button>
-        </div>
-      </form>
     </div>
   );
 }

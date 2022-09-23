@@ -1,6 +1,9 @@
 from typing import Optional, List
 from fastapi import FastAPI, Depends, Cookie, Request, HTTPException, Form
 from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
+from sse_starlette.sse import EventSourceResponse
+import asyncio
 
 from codenames import models, schemas
 from codenames.sql import SQLAlchemyGameManager, SQLAlchemyGameBackend
@@ -20,6 +23,19 @@ from codenames.database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+MESSAGE_STREAM_DELAY = 1  # second
+MESSAGE_STREAM_RETRY_TIMEOUT = 15000  # milisecond
+
+# add CORS so our web page can connect to our api
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 def get_game_manager():
@@ -211,3 +227,24 @@ def create_game(
         "message": f"Successfully created the game '{game.name}'.",
         "game_id": result.id,
     }
+
+
+@app.get("/updates")
+async def message_stream(request: Request):
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                logger.debug("Request disconnected")
+                break
+
+            # Checks for new messages and return them to client if any
+            yield {
+                "event": "new_message",
+                "id": "message_id",
+                "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
+                "data": "Foo",
+            }
+
+            await asyncio.sleep(MESSAGE_STREAM_DELAY)
+
+    return EventSourceResponse(event_generator())
