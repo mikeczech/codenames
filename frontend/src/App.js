@@ -85,10 +85,6 @@ function Create() {
 }
 
 class Square extends React.Component {
-  constructor(props) {
-    super(props)
-  }
-
   render() {
     return <button className={this.props.colorClass} >{this.props.word}</button>
   }
