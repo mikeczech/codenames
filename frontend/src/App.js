@@ -3,8 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import Cookies from 'universal-cookie';
 import {
   BrowserRouter as Router,
-  Switch,
-  Redirect,
+  Routes,
+  Navigate,
   Route,
   useParams
 } from "react-router-dom";
@@ -20,14 +20,10 @@ export default function App() {
   return (
     <Router>
       <div>
-        <Switch>
-          <Route path="/:gameId">
-            <Game />
-          </Route>
-          <Route path="/">
-            <Create />
-          </Route>
-        </Switch>
+        <Routes>
+          <Route path="/:gameId" element={<Game />} />
+          <Route path="/" element={<Create />} />
+        </Routes>
       </div>
     </Router>
   );
@@ -69,7 +65,7 @@ class CreateGameForm extends React.Component {
 
   render() {
     if (this.state.created) {
-      return <Redirect to={this.state.gameId.toString()} />
+      return <Navigate to={this.state.gameId.toString()} />
     }
 
     return (
