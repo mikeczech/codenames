@@ -1,4 +1,5 @@
 from typing import Optional, List
+import json
 from fastapi import FastAPI, Depends, Cookie, Request, HTTPException, Form
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
@@ -229,20 +230,23 @@ def create_game(
     }
 
 
-@app.get("/updates")
-async def message_stream(request: Request):
+@app.get("/updates/{game_id}")
+async def message_stream(request: Request, backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
+    async def get_game_info():
+        return backend.load()
+
     async def event_generator():
         while True:
             if await request.is_disconnected():
                 logger.debug("Request disconnected")
                 break
 
-            # Checks for new messages and return them to client if any
+            game_info = await get_game_info()
             yield {
                 "event": "new_message",
                 "id": "message_id",
                 "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                "data": "Foo",
+                "data": json.dumps(game_info["players"])
             }
 
             await asyncio.sleep(MESSAGE_STREAM_DELAY)

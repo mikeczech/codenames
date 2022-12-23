@@ -14,7 +14,6 @@ const BLUE_COLOR_ID = 2;
 const PLAYER_ROLE_ID = 1;
 const SPYMASTER_ROLE_ID = 2;
 
-const evtSource = new EventSource("http://127.0.0.1:8000/updates");
 
 export default function App() {
   return (
@@ -109,6 +108,7 @@ function Game() {
   const { gameId } = useParams();
   const [words, setWords] = useState(null);
   const [playerName, setPlayerName] = useState(null);
+  const [gameState, setGameState] = useState(null);
   const modalDiv = useRef(null)
 
   useEffect(() => {
@@ -120,10 +120,12 @@ function Game() {
         cookies.set("session_id", uuidv4(), { path: '/'});
       };
 
+      const evtSource = new EventSource(`http://127.0.0.1:8000/updates/${gameId}`);
       evtSource.addEventListener("new_message", function (event) {
         // Logic to handle status updates
         //setMessage((messages) => [...messages, event.data]);
-        console.log(event)
+        const parsedData = JSON.parse(event.data);
+        console.log(parsedData)
       });
 
       return () => {
@@ -184,7 +186,11 @@ function Game() {
             </form>
 
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
+              <button
+                onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
+                className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">
+                Join as Spymaster
+              </button>
               <button onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
               <button onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
               <button onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>

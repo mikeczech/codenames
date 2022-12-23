@@ -12,7 +12,7 @@ run-tests:
 	poetry run pytest tests/codenames $(pytest_args)
 
 run-backend:
-	poetry run uvicorn --app-dir codenames/ api:app --reload
+	poetry run uvicorn --app-dir codenames/ api:app --reload --log-level debug
 
 run-frontend:
 	(cd frontend && npm start)
