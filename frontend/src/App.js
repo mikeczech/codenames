@@ -132,7 +132,7 @@ function Game() {
   }, []);
 
   function renderSquare(w) {
-    return <li><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
+    return <li key={w["word"]}><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
   }
 
   function handleJoin(colorId, roleId) {
