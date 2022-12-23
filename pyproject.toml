@@ -24,6 +24,7 @@ SQLAlchemy = "^1.4.25"
 alembic = "^1.7.3"
 sse-starlette = "^1.1.6"
 asyncio = "^3.4.3"
+jsonpickle = "^3.0.1"
 
 [tool.poetry.dev-dependencies]
 httpie = "^2.3.0"

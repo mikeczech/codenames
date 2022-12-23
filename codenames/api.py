@@ -1,5 +1,5 @@
 from typing import Optional, List
-import json
+import jsonpickle
 from fastapi import FastAPI, Depends, Cookie, Request, HTTPException, Form
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,7 +36,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 def get_game_manager():
@@ -231,7 +230,9 @@ def create_game(
 
 
 @app.get("/updates/{game_id}")
-async def message_stream(request: Request, backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
+async def message_stream(
+    request: Request, backend: SQLAlchemyGameBackend = Depends(get_game_backend)
+):
     async def get_game_info():
         return backend.load()
 
@@ -246,7 +247,7 @@ async def message_stream(request: Request, backend: SQLAlchemyGameBackend = Depe
                 "event": "new_message",
                 "id": "message_id",
                 "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                "data": json.dumps(game_info["players"])
+                "data": jsonpickle.encode(game_info),
             }
 
             await asyncio.sleep(MESSAGE_STREAM_DELAY)

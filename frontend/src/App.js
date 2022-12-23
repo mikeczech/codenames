@@ -122,8 +122,6 @@ function Game() {
 
       const evtSource = new EventSource(`http://127.0.0.1:8000/updates/${gameId}`);
       evtSource.addEventListener("new_message", function (event) {
-        // Logic to handle status updates
-        //setMessage((messages) => [...messages, event.data]);
         const parsedData = JSON.parse(event.data);
         console.log(parsedData)
       });

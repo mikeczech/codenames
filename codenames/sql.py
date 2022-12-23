@@ -57,8 +57,8 @@ class SQLAlchemyGameBackend(GameBackend):
             "players": [
                 {
                     "session_id": p.session_id,
-                    "color": p.color,
-                    "role": p.role,
+                    "color": Color(p.color),
+                    "role": Role(p.role),
                 }
                 for p in game.players
             ],
