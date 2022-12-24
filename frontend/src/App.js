@@ -123,7 +123,7 @@ function Game() {
       const evtSource = new EventSource(`http://127.0.0.1:8000/updates/${gameId}`);
       evtSource.addEventListener("new_message", function (event) {
         const parsedData = JSON.parse(event.data);
-        console.log(parsedData)
+        setGameState(parsedData)
       });
 
       return () => {
@@ -133,6 +133,14 @@ function Game() {
 
   function renderSquare(w) {
     return <li key={w["word"]}><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
+  }
+
+  function getPlayer(colorId, roleId) {
+    return gameState.players.find(p => p.color._value_ === colorId && p.role._value_ === roleId)
+  }
+
+  function hasJoined(colorId, roleId) {
+    return gameState.players.some(p => p.color._value_ === colorId && p.role._value_ === roleId)
   }
 
   function handleJoin(colorId, roleId) {
@@ -186,12 +194,44 @@ function Game() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
-                className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">
-                Join as Spymaster
+                disabled={hasJoined(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
+                className={
+                  hasJoined(RED_COLOR_ID, SPYMASTER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {hasJoined(RED_COLOR_ID, SPYMASTER_ROLE_ID) ? getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
               </button>
-              <button onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Spymaster</button>
-              <button onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
-              <button onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}  className="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400">Join as Agent</button>
+              <button
+                onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}
+                disabled={hasJoined(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}
+                className={
+                  hasJoined(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {hasJoined(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ? getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
+              </button>
+              <button
+                onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}
+                disabled={hasJoined(RED_COLOR_ID, PLAYER_ROLE_ID)}
+                className={
+                  hasJoined(RED_COLOR_ID, PLAYER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {hasJoined(RED_COLOR_ID, PLAYER_ROLE_ID) ? getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
+              </button>
+              <button
+                onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}
+                disabled={hasJoined(BLUE_COLOR_ID, PLAYER_ROLE_ID)}
+                className={
+                  hasJoined(BLUE_COLOR_ID, PLAYER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {hasJoined(BLUE_COLOR_ID, PLAYER_ROLE_ID) ? getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
+              </button>
             </div>
             <div className="grid grid-cols-1 mt-4 gap-4">
               <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400">Start Game</button>

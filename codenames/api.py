@@ -247,7 +247,7 @@ async def message_stream(
                 "event": "new_message",
                 "id": "message_id",
                 "retry": MESSAGE_STREAM_RETRY_TIMEOUT,
-                "data": jsonpickle.encode(game_info),
+                "data": jsonpickle.encode(game_info, unpicklable=False),
             }
 
             await asyncio.sleep(MESSAGE_STREAM_DELAY)
