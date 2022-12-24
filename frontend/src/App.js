@@ -173,6 +173,12 @@ function Game() {
     return <p>Loading state...</p>
   }
 
+  var redSpyMasterHasJoined = getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
+  var blueSpyMasterHasJoined = getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
+  var redPlayerHasJoined = getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) !== undefined
+  var bluePlayerHasJoined = getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) !== undefined
+  var allJoined = redSpyMasterHasJoined && blueSpyMasterHasJoined && redPlayerHasJoined && bluePlayerHasJoined
+
   return (
     <div>
       <div ref={modalDiv} className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
@@ -196,7 +202,7 @@ function Game() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
-                disabled={getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined}
+                disabled={redSpyMasterHasJoined}
                 className={
                   getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) ?
                   "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
@@ -206,7 +212,7 @@ function Game() {
               </button>
               <button
                 onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}
-                disabled={getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined}
+                disabled={blueSpyMasterHasJoined}
                 className={
                   getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ?
                   "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
@@ -216,7 +222,7 @@ function Game() {
               </button>
               <button
                 onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}
-                disabled={getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) !== undefined}
+                disabled={redPlayerHasJoined}
                 className={
                   getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) ?
                   "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
@@ -226,7 +232,7 @@ function Game() {
               </button>
               <button
                 onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}
-                disabled={getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) !== undefined}
+                disabled={bluePlayerHasJoined}
                 className={
                   getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) ?
                   "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
@@ -236,7 +242,16 @@ function Game() {
               </button>
             </div>
             <div className="grid grid-cols-1 mt-4 gap-4">
-              <button onClick={togglePlayerNameModel}  className="modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400">Start Game</button>
+              <button
+                onClick={togglePlayerNameModel}
+                disabled={!(allJoined)}
+                className={
+                  allJoined ?
+                  "modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400" :
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white"
+                }>
+                Start Game
+              </button>
             </div>
           </div>
 
