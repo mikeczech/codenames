@@ -95,11 +95,11 @@ class Login extends React.Component {
     gameId: 0
   }
 
-  getPlayer = (colorId, roleId) => {
+  getPlayer(colorId, roleId) {
     return this.props.gameState.players.find(p => p.color._value_ === colorId && p.role._value_ === roleId)
   }
 
-  handleJoin = (colorId, roleId) => {
+  handleJoin(colorId, roleId) {
     (async () => {
       fetch(`/games/${this.props.gameId}/join`, {
         method: 'PUT',
@@ -117,11 +117,11 @@ class Login extends React.Component {
     })();
   }
 
-  handlePlayerNameChange = (event) => {
+  handlePlayerNameChange(event) {
     this.state.playerName = event.target.value;
   }
 
-  startGame = () => {
+  startGame() {
     (async () => {
       fetch(`/games/${this.props.gameId}/start`, {
         method: 'PUT',
