@@ -89,6 +89,142 @@ class Square extends React.Component {
   }
 }
 
+class Login extends React.Component {
+  state = {
+    playerName: "",
+    gameId: 0
+  }
+
+  getPlayer = (colorId, roleId) => {
+    return this.props.gameState.players.find(p => p.color._value_ === colorId && p.role._value_ === roleId)
+  }
+
+  handleJoin = (colorId, roleId) => {
+    (async () => {
+      fetch(`/games/${this.props.gameId}/join`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({color_id: colorId, role_id: roleId, name: this.state.playerName})
+      })
+      .then(response => response.json())
+      .then(json => {})
+      .catch(e => {
+        console.log(e)
+      });
+    })();
+  }
+
+  handlePlayerNameChange = (event) => {
+    this.state.playerName = event.target.value;
+  }
+
+  startGame = () => {
+    (async () => {
+      fetch(`/games/${this.props.gameId}/start`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+      .then(response => response.json())
+      .then(json => {})
+      .catch(e => {
+        console.log(e)
+      });
+    })();
+  }
+
+  render() {
+    var redSpyMasterHasJoined = this.getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
+    var blueSpyMasterHasJoined = this.getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
+    var redPlayerHasJoined = this.getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) !== undefined
+    var bluePlayerHasJoined = this.getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) !== undefined
+    var allJoined = redSpyMasterHasJoined && blueSpyMasterHasJoined && redPlayerHasJoined && bluePlayerHasJoined
+
+    return <div className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
+        <div className="modal-overlay absolute w-full h-full bg-gray-900 opacity-80"></div>
+        <div className="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
+
+          <div className="modal-content py-4 text-left px-6">
+            <div className="flex justify-between items-center pb-3">
+              <p className="text2xl font-bold">Join the Game</p>
+            </div>
+
+            <form>
+              <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+                     type="text"
+                     placeholder="Your Name"
+                     //disabled=false
+                     onChange={e => this.handlePlayerNameChange(e)}
+              />
+            </form>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => this.handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
+                disabled={redSpyMasterHasJoined}
+                className={
+                  this.getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {this.getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) ? this.getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
+              </button>
+              <button
+                onClick={() => this.handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}
+                disabled={blueSpyMasterHasJoined}
+                className={
+                  this.getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {this.getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ? this.getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
+              </button>
+              <button
+                onClick={() => this.handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}
+                disabled={redPlayerHasJoined}
+                className={
+                  this.getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {this.getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) ? this.getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
+              </button>
+              <button
+                onClick={() => this.handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}
+                disabled={bluePlayerHasJoined}
+                className={
+                  this.getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) ?
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
+                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
+                }>
+                {this.getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) ? this.getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
+              </button>
+            </div>
+            <div className="grid grid-cols-1 mt-4 gap-4">
+              <button
+                onClick={this.startGame}
+                disabled={!(allJoined)}
+                className={
+                  allJoined ?
+                  "modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400" :
+                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white"
+                }>
+                Start Game
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+  }
+}
+
 
 function colorIdToClass(colorId) {
   if(colorId === 1) {
@@ -108,7 +244,6 @@ function Game() {
   const { gameId } = useParams();
   const [words, setWords] = useState(null);
   const [playerName, setPlayerName] = useState(null);
-  const [hasJoined, setHasJoined] = useState(false);
   const [gameState, setGameState] = useState(null);
   const modalDiv = useRef(null)
 
@@ -136,127 +271,13 @@ function Game() {
     return <li key={w["word"]}><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
   }
 
-  function getPlayer(colorId, roleId) {
-    return gameState.players.find(p => p.color._value_ === colorId && p.role._value_ === roleId)
-  }
-
-  function handleJoin(colorId, roleId) {
-    (async () => {
-      fetch(`/games/${gameId}/join`, {
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({color_id: colorId, role_id: roleId, name: playerName})
-      })
-      .then(response => response.json())
-      .then(json => {
-        setHasJoined(true)
-      })
-      .catch(e => {
-        console.log(e)
-      });
-    })();
-  }
-
-  function handlePlayerNameChange(event) {
-    setPlayerName(event.target.value);
-  }
-
-  function togglePlayerNameModel() {
-      modalDiv.current.classList.toggle('opacity-0')
-      modalDiv.current.classList.toggle('pointer-events-none')
-  }
-
   if (!words) {
     return <p>Loading state...</p>
   }
 
-  var redSpyMasterHasJoined = getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
-  var blueSpyMasterHasJoined = getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) !== undefined
-  var redPlayerHasJoined = getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) !== undefined
-  var bluePlayerHasJoined = getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) !== undefined
-  var allJoined = redSpyMasterHasJoined && blueSpyMasterHasJoined && redPlayerHasJoined && bluePlayerHasJoined
-
   return (
     <div>
-      <div ref={modalDiv} className="modal fixed w-full h-full top-0 left-0 flex items-center justify-center">
-        <div className="modal-overlay absolute w-full h-full bg-gray-900 opacity-80"></div>
-        <div className="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto">
-
-          <div className="modal-content py-4 text-left px-6">
-            <div className="flex justify-between items-center pb-3">
-              <p className="text2xl font-bold">Join the Game</p>
-            </div>
-
-            <form>
-              <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-                     type="text"
-                     placeholder="Your Name"
-                     disabled={hasJoined}
-                     onChange={e => handlePlayerNameChange(e)}
-              />
-            </form>
-
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handleJoin(RED_COLOR_ID, SPYMASTER_ROLE_ID)}
-                disabled={redSpyMasterHasJoined}
-                className={
-                  getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) ?
-                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
-                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
-                }>
-                {getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID) ? getPlayer(RED_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
-              </button>
-              <button
-                onClick={() => handleJoin(BLUE_COLOR_ID, SPYMASTER_ROLE_ID)}
-                disabled={blueSpyMasterHasJoined}
-                className={
-                  getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ?
-                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
-                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
-                }>
-                {getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID) ? getPlayer(BLUE_COLOR_ID, SPYMASTER_ROLE_ID).name : "Join as Spymaster" }
-              </button>
-              <button
-                onClick={() => handleJoin(RED_COLOR_ID, PLAYER_ROLE_ID)}
-                disabled={redPlayerHasJoined}
-                className={
-                  getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) ?
-                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
-                  "modal-close px-4 bg-red-500 p-3 rounded-lg text-white hover:bg-gray-400"
-                }>
-                {getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID) ? getPlayer(RED_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
-              </button>
-              <button
-                onClick={() => handleJoin(BLUE_COLOR_ID, PLAYER_ROLE_ID)}
-                disabled={bluePlayerHasJoined}
-                className={
-                  getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) ?
-                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white" :
-                  "modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-gray-400"
-                }>
-                {getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID) ? getPlayer(BLUE_COLOR_ID, PLAYER_ROLE_ID).name : "Join as Player" }
-              </button>
-            </div>
-            <div className="grid grid-cols-1 mt-4 gap-4">
-              <button
-                onClick={togglePlayerNameModel}
-                disabled={!(allJoined)}
-                className={
-                  allJoined ?
-                  "modal-close px-4 bg-black p-3 rounded-lg text-white hover:bg-gray-400" :
-                  "modal-close px-4 bg-gray-400 p-3 rounded-lg text-white"
-                }>
-                Start Game
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </div>
+      <Login gameState={gameState} gameId={gameId} />
       <ul className="words">{words.map(w => renderSquare(w))}</ul>
     </div>
   );
