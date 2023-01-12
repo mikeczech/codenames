@@ -14,7 +14,6 @@ const BLUE_COLOR_ID = 2;
 const PLAYER_ROLE_ID = 1;
 const SPYMASTER_ROLE_ID = 2;
 
-
 export default function App() {
   return (
     <Router>
