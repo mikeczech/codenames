@@ -275,9 +275,11 @@ function Game() {
   }
 
   return (
-    <div>
-      <Login gameState={gameState} gameId={gameId} />
-      <ul className="words">{words.map(w => renderSquare(w))}</ul>
+    <div class="flex h-screen">
+      <div class="m-auto">
+        <Login gameState={gameState} gameId={gameId} />
+        <ul className="words">{words.map(w => renderSquare(w))}</ul>
+      </div>
     </div>
   );
 }
