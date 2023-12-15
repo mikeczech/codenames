@@ -113,21 +113,25 @@ class TestSQLAlchemyGameBackend:
             "session_id": "ABDB23",
             "color": Color.RED,
             "role": Role.PLAYER,
+            "name": "daniel"
         }
         assert result[1] == {
             "session_id": "ABDB55",
             "color": Color.BLUE,
             "role": Role.PLAYER,
+            "name": "steve"
         }
         assert result[2] == {
             "session_id": "ABDB33",
             "color": Color.RED,
             "role": Role.SPYMASTER,
+            "name": "carina"
         }
         assert result[3] == {
             "session_id": "ABDB67",
             "color": Color.BLUE,
             "role": Role.SPYMASTER,
+            "name": "sarah"
         }
 
     def test_remove_players(self, db_session):
