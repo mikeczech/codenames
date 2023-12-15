@@ -93,9 +93,26 @@ def join_game(
     if session_id is None:
         raise HTTPException(status_code=401, detail="Could not determine session id")
     current_game_state = Game(session_id, backend).load_state()
+
+    ai1_game_state = Game(session_id + "-ai1", backend).load_state()
+    ai2_game_state = Game(session_id + "-ai2", backend).load_state()
+    ai3_game_state = Game(session_id + "-ai3", backend).load_state()
+
     try:
         current_game_state.join(
             Color(player.color_id), Role(player.role_id), player.name
+        )
+
+        ai1_game_state.join(
+            Color(player.color_id).toggle(), Role(player.role_id), "Ng (AI)"
+        )
+
+        ai2_game_state.join(
+            Color(player.color_id), Role(player.role_id).toggle(), "LeCun (AI)"
+        )
+
+        ai3_game_state.join(
+            Color(player.color_id).toggle(), Role(player.role_id).toggle(), "Hinton (AI)"
         )
     except RoleOccupiedException as ex:
         raise HTTPException(
