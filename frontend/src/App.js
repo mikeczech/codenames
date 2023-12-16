@@ -244,6 +244,7 @@ function Game() {
   const [words, setWords] = useState(null);
   const [playerName, setPlayerName] = useState(null);
   const [gameState, setGameState] = useState(null);
+  const [hint, setHint] = useState(null);
   const modalDiv = useRef(null)
 
   useEffect(() => {
@@ -270,6 +271,10 @@ function Game() {
     return <li key={w["word"]}><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
   }
 
+  function handleHintChange(event) {
+    setHint(event.target.value);
+  }
+
   if (!words) {
     return <p>Loading state...</p>
   }
@@ -279,6 +284,14 @@ function Game() {
       <div className="m-auto">
         { gameState.conditions.length == 1 ? <Login gameState={gameState} gameId={gameId} /> : "" }
         <ul className="words">{words.map(w => renderSquare(w))}</ul>
+        <form>
+          <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
+                 type="text"
+                 placeholder="Your Hint"
+                 //disabled=false
+                 onChange={e => handleHintChange(e)}
+          />
+        </form>
       </div>
     </div>
   );
