@@ -207,7 +207,7 @@ class Login extends React.Component {
             </div>
             <div className="grid grid-cols-1 mt-4 gap-4">
               <button
-                onClick={this.startGame}
+                onClick={() => this.startGame()}
                 disabled={!(allJoined)}
                 className={
                   allJoined ?
@@ -275,9 +275,9 @@ function Game() {
   }
 
   return (
-    <div class="flex h-screen">
-      <div class="m-auto">
-        <Login gameState={gameState} gameId={gameId} />
+    <div className="flex h-screen">
+      <div className="m-auto">
+        { gameState.conditions.length == 1 ? <Login gameState={gameState} gameId={gameId} /> : "" }
         <ul className="words">{words.map(w => renderSquare(w))}</ul>
       </div>
     </div>
