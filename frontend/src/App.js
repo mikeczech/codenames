@@ -290,7 +290,7 @@ function Game() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex h-screen bg-[#1d1e20]">
       <div className="m-auto">
         { gameState.conditions.length == 1 ? <Login gameState={gameState} gameId={gameId} /> : "" }
         <ul className="words">{words.map(w => renderSquare(w, similarities))}</ul>
