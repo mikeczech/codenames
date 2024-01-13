@@ -83,8 +83,12 @@ function Create() {
 }
 
 class Square extends React.Component {
+  state = {
+    opacity: 1.0
+  }
+
   render() {
-    return <button className={this.props.colorClass} >{this.props.word}</button>
+    return <button style={{ opacity: this.props.opacity }} className={this.props.colorClass} >{this.props.word} ({this.props.opacity.toFixed(2)})</button>
   }
 }
 
@@ -245,6 +249,7 @@ function Game() {
   const [playerName, setPlayerName] = useState(null);
   const [gameState, setGameState] = useState(null);
   const [hint, setHint] = useState(null);
+  const [similarities, setSimilarities] = useState(null);
   const modalDiv = useRef(null)
 
   useEffect(() => {
@@ -267,12 +272,16 @@ function Game() {
       };
   }, []);
 
-  function renderSquare(w) {
-    return <li key={w["word"]}><Square word={w["word"]} colorClass={colorIdToClass(w["color"])}/></li>
+  function renderSquare(w, similarities) {
+    return <li key={w["word"]}><Square word={w["word"]} opacity={ similarities !== null ? similarities[w["id"]] : 1.0} colorClass={colorIdToClass(w["color"])}/></li>
   }
 
   function handleHintChange(event) {
-    setHint(event.target.value);
+    fetch(`/games/${gameId}/similarity?` + new URLSearchParams({
+        hint: event.target.value,
+    })).then(res => res.json()).then(data => {
+      setSimilarities(data)
+    });
   }
 
   if (!words) {
@@ -283,12 +292,11 @@ function Game() {
     <div className="flex h-screen">
       <div className="m-auto">
         { gameState.conditions.length == 1 ? <Login gameState={gameState} gameId={gameId} /> : "" }
-        <ul className="words">{words.map(w => renderSquare(w))}</ul>
+        <ul className="words">{words.map(w => renderSquare(w, similarities))}</ul>
         <form>
           <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
                  type="text"
                  placeholder="Your Hint"
-                 //disabled=false
                  onChange={e => handleHintChange(e)}
           />
         </form>

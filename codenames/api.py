@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 import asyncio
+import spacy
+import numpy as np
 
 from codenames import models, schemas
 from codenames.sql import SQLAlchemyGameManager, SQLAlchemyGameBackend
@@ -55,6 +57,10 @@ def get_game_backend(game_id: int):
     finally:
         db.close()
 
+nlp = spacy.load("en_vectors_floret_lg")
+
+def get_nlp():
+    return nlp
 
 @app.get("/games/{game_id}/words")
 def read_active_words(backend: SQLAlchemyGameBackend = Depends(get_game_backend)):
@@ -204,6 +210,23 @@ def end_turn(
     return {"message": f"Successfully ended the turn"}
 
 
+@app.get("/games/{game_id}/similarity")
+def similarity(
+    hint: str,
+    backend: SQLAlchemyGameBackend = Depends(get_game_backend),
+    nlp = Depends(get_nlp)
+):
+    active_words = backend.read_active_words()
+    hint_word = nlp.vocab[hint.lower()]
+
+    ids = [w.id for w in active_words]
+    if hint == "":
+        return dict(zip(ids, [1.0] * len(ids)))
+    sim = np.array([hint_word.similarity(nlp.vocab[w.word.value.lower()]) for w in active_words])
+    norm = (sim - sim.min()) / (sim.max() - sim.min())
+    return dict(zip(ids, norm))
+
+
 @app.put("/games/{game_id}/guess")
 def guess(
     guess: schemas.GuessCreate,
@@ -232,7 +255,7 @@ def create_game(
     game_manager: SQLAlchemyGameManager = Depends(get_game_manager),
 ):
     try:
-        result = game_manager.create_random(game.name, session_id, random_seed=42)
+        result = game_manager.create_random(game.name, session_id, random_seed=66)
     except GameAlreadyExistsException as ex:
         raise HTTPException(
             status_code=403, detail=f"The game {game.name} already exists"
