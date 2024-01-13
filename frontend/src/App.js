@@ -88,7 +88,8 @@ class Square extends React.Component {
   }
 
   render() {
-    return <button style={{ opacity: this.props.opacity }} className={this.props.colorClass} >{this.props.word} ({this.props.opacity.toFixed(2)})</button>
+    //return <button style={{ opacity: this.props.opacity }} className={`${this.props.colorClass} border-none`} >{this.props.word} ({this.props.opacity.toFixed(2)})</button>
+    return <button style={{ opacity: this.props.opacity }} className={`${this.props.colorClass} border-none`} >{this.props.word}</button>
   }
 }
 
@@ -273,7 +274,7 @@ function Game() {
   }, []);
 
   function renderSquare(w, similarities) {
-    return <li key={w["word"]}><Square word={w["word"]} opacity={ similarities !== null ? similarities[w["id"]] : 1.0} colorClass={colorIdToClass(w["color"])}/></li>
+    return <li key={w["word"]}><Square word={w["word"]} opacity={ similarities !== null ? similarities[w["id"]] : 1.0} colorClass={`${colorIdToClass(w["color"])} rounded-md m-1`}/></li>
   }
 
   function handleHintChange(event) {
@@ -289,16 +290,28 @@ function Game() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-gray-900">
       <div className="m-auto">
         { gameState.conditions.length == 1 ? <Login gameState={gameState} gameId={gameId} /> : "" }
         <ul className="words">{words.map(w => renderSquare(w, similarities))}</ul>
         <form>
-          <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline"
-                 type="text"
-                 placeholder="Your Hint"
-                 onChange={e => handleHintChange(e)}
-          />
+          <div className="text-center">
+            <input className="shadow appearance-none border rounded w-80 py-2 px-3 text-gray-700 mt-3 leading-tight focus:outline-none focus:shadow-outline"
+                   type="text"
+                   placeholder="Your Hint"
+                   onChange={e => handleHintChange(e)}
+            />
+            <input className="shadow appearance-none border rounded w-10 text-center py-2 px-3 text-gray-700 ml-3 mt-3 leading-tight focus:outline-none focus:shadow-outline"
+                   type="text"
+                   placeholder="-"
+            />
+            <button
+              className={
+                "shadow appearance-none border-lime-400 rounded w-24 bg-lime-400 text-gray-800 text-center py-2 px-3 text-white ml-3 mt-3 leading-tight"
+              }>
+              Give Clue
+            </button>
+          </div>
         </form>
       </div>
     </div>

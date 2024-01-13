@@ -52,14 +52,17 @@ ul.words li:nth-child(7n+1) {
 }
 
 ul.words li button {
-  width: 125px;
-  height: 125px;
-  border: 1px solid #999;
-  font-size: 20px;
-  font-weight: bold;
+  width: 90px;
+  height: 90px;
+  font-size: 14px;
   line-height: 34px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
+  text-transform: uppercase;
+}
+
+ul.words li button:hover {
+  background-color: #303030;
 }
